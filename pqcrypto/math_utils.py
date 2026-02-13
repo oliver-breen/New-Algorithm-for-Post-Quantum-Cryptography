@@ -4,7 +4,6 @@ Mathematical utilities for polynomial operations in lattice-based cryptography.
 Implements polynomial arithmetic, sampling, and NTT (Number Theoretic Transform).
 """
 
-import random
 import secrets
 from typing import List
 

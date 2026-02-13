@@ -5,7 +5,6 @@ Implements LWE-based encryption scheme.
 """
 
 from typing import Dict, List
-import secrets
 from .math_utils import (
     PolynomialRing, Sampler, 
     compress_poly, decompress_poly,

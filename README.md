@@ -39,7 +39,7 @@ print(plaintext)  # b'Hello, Quantum World!'
 
 - [Algorithm Details](docs/ALGORITHM.md) - Comprehensive algorithm description
 - [API Reference](docs/ALGORITHM.md#api-reference) - Complete API documentation
-- [Security Analysis](docs/ALGORITHM.md#security-considerations) - Security considerations
+- [Security Analysis](docs/SECURITY.md) - Security considerations and threat model
 
 ## 🧪 Running Tests
 
