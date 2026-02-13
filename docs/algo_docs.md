@@ -352,9 +352,9 @@ Performance on modern x86 CPU (single core, reference implementation):
 
 | Operation | Kyber512 | Kyber768 | Kyber1024 | Dilithium2 | Dilithium3 | LightSaber | Saber | FireSaber |
 |-----------|----------|----------|-----------|------------|------------|------------|-------|-----------|
-| KeyGen | ~50μs | ~80μs | ~120μs | ~60μs | ~100μs | ~45μs | ~70μs | ~95μs |
-| Encaps/Sign | ~65μs | ~100μs | ~140μs | ~200μs | ~350μs | ~60μs | ~90μs | ~120μs |
-| Decaps/Verify | ~70μs | ~110μs | ~150μs | ~80μs | ~120μs | ~65μs | ~95μs | ~125μs |
+| KeyGen | ~50us | ~80us | ~120us | ~60us | ~100us | ~45us | ~70us | ~95us |
+| Encaps/Sign | ~65us | ~100us | ~140us | ~200us | ~350us | ~60us | ~90us | ~120us |
+| Decaps/Verify | ~70us | ~110us | ~150us | ~80us | ~120us | ~65us | ~95us | ~125us |
 
 *Note: These are estimates for optimized implementations. Python implementations will be significantly slower.*
 

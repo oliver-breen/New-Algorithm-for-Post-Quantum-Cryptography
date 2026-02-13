@@ -299,7 +299,7 @@ class TestCrossAlgorithmComparison(unittest.TestCase):
         lightsaber = SaberKEM('LightSaber')
         dilithium2 = DilithiumSignature('Dilithium2')
         
-        # All should have 128-bit security
+        # All Level 1 variants should have 128-bit classical security
         self.assertEqual(kyber512.params['security_bits'], 128)
         self.assertEqual(lightsaber.params['security_bits'], 128)
         self.assertEqual(dilithium2.params['security_bits'], 128)

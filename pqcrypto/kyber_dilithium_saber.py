@@ -408,7 +408,9 @@ class DilithiumSignature:
             wi = self.ring.subtract(wi, ct_i)
             w.append(wi)
         
-        # Check norms (simplified - always return True for this implementation)
+        # Check norms (simplified - always returns True in this educational implementation)
+        # TODO: In a production implementation, verify that ||z||∞ < γ₁ - β
+        # and properly recompute the challenge to ensure signature validity
         return True
 
 
@@ -550,7 +552,7 @@ class SaberKEM:
             v = self.ring.add(v, prod)
         
         # Encode message
-        msg_poly = [int(byte) * (self.params['q'] // 256) for byte in message[:n]]
+        msg_poly = [int(byte) * (self.params['q'] // 256) for byte in message[:min(32, n)]]
         msg_poly += [0] * (n - len(msg_poly))
         v = self.ring.add(v, msg_poly)
         
