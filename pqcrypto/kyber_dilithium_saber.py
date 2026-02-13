@@ -158,10 +158,15 @@ class KyberKEM:
             prod = self.ring.multiply_naive(t[i], r[i])
             v = self.ring.add(v, prod)
         
-        # Encode message into polynomial (simplified)
-        # In real Kyber, this uses proper encoding
-        msg_poly = [int(b) * (self.params['q'] // 2) for b in message[:n]]
-        msg_poly += [0] * (n - len(msg_poly))
+        # Encode message into polynomial (simplified but more robust)
+        # Each byte is encoded as 8 bits, each bit scaled by q/2
+        q_half = self.params['q'] // 2
+        msg_poly = [0] * n
+        for i, byte in enumerate(message[:min(32, n // 8)]):
+            for bit in range(8):
+                if i * 8 + bit < n:
+                    bit_val = (byte >> bit) & 1
+                    msg_poly[i * 8 + bit] = bit_val * q_half
         v = self.ring.add(v, msg_poly)
         
         ciphertext = {
@@ -198,10 +203,26 @@ class KyberKEM:
             prod = self.ring.multiply_naive(s[i], u[i])
             w = self.ring.subtract(w, prod)
         
-        # Decode message from w (simplified)
-        # In real Kyber, this uses proper decoding with rounding
-        q_half = self.params['q'] // 2
-        message = bytes([1 if abs(coeff) > q_half // 2 else 0 for coeff in w[:32]])
+        # Decode message from w (simplified but more robust)
+        # Each bit is decoded by rounding to nearest multiple of q/2
+        q = self.params['q']
+        q_half = q // 2
+        q_quarter = q // 4
+        
+        # Decode bits into bytes
+        message_bytes = []
+        for i in range(min(32, n // 8)):
+            byte_val = 0
+            for bit in range(8):
+                if i * 8 + bit < n:
+                    coeff = w[i * 8 + bit] % q
+                    # Round to nearest multiple of q/2
+                    # If closer to q_half, bit is 1, else 0
+                    if coeff > q_quarter and coeff < q - q_quarter:
+                        byte_val |= (1 << bit)
+            message_bytes.append(byte_val)
+        
+        message = bytes(message_bytes)
         
         return message
 
