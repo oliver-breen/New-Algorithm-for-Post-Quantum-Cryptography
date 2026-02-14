@@ -13,7 +13,8 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename=QuantaWeaveGUI-Setup
-OutputDir=..
+
+OutputDir=..\dist
 
 Compression=lzma2
 SolidCompression=yes
