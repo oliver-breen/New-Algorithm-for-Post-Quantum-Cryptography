@@ -1,5 +1,5 @@
 """
-Performance benchmark for the PQCrypto library.
+Performance benchmark for the QuantaWeave library.
 
 Tests encryption/decryption speed at different security levels.
 """
@@ -11,7 +11,7 @@ import time
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 
 def benchmark_security_level(level, num_iterations=10):
@@ -19,7 +19,7 @@ def benchmark_security_level(level, num_iterations=10):
     print(f"\nBenchmarking {level}:")
     print("-" * 50)
     
-    pqc = PQCrypto(security_level=level)
+    pqc = QuantaWeave(security_level=level)
     
     # Benchmark key generation
     start_time = time.time()

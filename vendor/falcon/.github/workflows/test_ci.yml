@@ -1,0 +1,38 @@
+name: Test Falcon Post-Quantum Digital Signature Algorithm
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Google-Test
+      run: |
+        pushd ~
+        git clone https://github.com/google/googletest.git -b v1.14.0
+        pushd googletest
+        mkdir build
+        pushd build
+        cmake .. -DBUILD_GMOCK=OFF
+        make
+        sudo make install
+        popd
+        popd
+        popd
+    - name: Install libGMP
+      run: sudo apt-get install -y libgmp-dev
+      if: matrix.os == 'ubuntu-latest'
+    - name: Install libGMP
+      run: brew install gmp
+      if: matrix.os == 'macos-latest'
+    - name: Execute Tests on ${{matrix.os}}
+      run: make -j

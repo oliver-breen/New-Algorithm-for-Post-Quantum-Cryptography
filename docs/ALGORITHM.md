@@ -1,18 +1,20 @@
-# Post-Quantum Cryptography Algorithm
+# QuantaWeave Algorithm
 
-A Python implementation of a lattice-based post-quantum cryptography algorithm using the Learning With Errors (LWE) problem.
+QuantaWeave is a Python implementation of a lattice-based post-quantum cryptography algorithm using the Learning With Errors (LWE) problem.
 
 ## Overview
 
-This library implements a quantum-resistant encryption scheme designed to be secure against attacks from both classical and quantum computers. The algorithm is based on the hardness of the Learning With Errors (LWE) problem, which is believed to be hard even for quantum computers.
+This library implements a quantum-resistant encryption scheme designed to be secure against attacks from both classical and quantum computers. The LWE-based encryption is complemented by a code-based HQC Key Encapsulation Mechanism (KEM) for shared-secret establishment and a Falcon signature binding.
 
 ## Features
 
 - **Quantum-Resistant**: Based on lattice problems that are hard for quantum computers
 - **Multiple Security Levels**: Support for 128-bit, 192-bit, and 256-bit security
 - **Simple API**: Easy-to-use interface for key generation, encryption, and decryption
-- **Pure Python**: No external dependencies for core functionality
-- **Well-Tested**: Comprehensive test suite
+- **Pure Python Core**: No external dependencies for the LWE-based library in `quantaweave/`
+- **Falcon Signatures**: C++ binding for Falcon-512/1024 signatures
+- **Examples Included**: Basic, benchmark, multi-party, HQC KEM, and Falcon signature demos
+- **Well-Tested**: Unit tests for math utilities, key generation, encryption/decryption, and HQC KEM round-trips
 
 ## Algorithm Description
 
@@ -43,7 +45,7 @@ Given pairs (A, b) where b = As + e (mod q), it is computationally hard to recov
 
 ## Installation
 
-Since this is a self-contained library, simply copy the `pqcrypto` directory to your project:
+Since this is a self-contained library, simply copy the `quantaweave` directory to your project:
 
 ```bash
 git clone https://github.com/oliver-breen/New-Algorithm-for-Post-Quantum-Cryptography.git
@@ -55,10 +57,10 @@ cd New-Algorithm-for-Post-Quantum-Cryptography
 ### Basic Example
 
 ```python
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 # Initialize with desired security level
-pqc = PQCrypto(security_level='LEVEL1')
+pqc = QuantaWeave(security_level='LEVEL1')
 
 # Generate key pair
 public_key, private_key = pqc.generate_keypair()
@@ -76,10 +78,10 @@ assert message == decrypted
 ### Advanced Example
 
 ```python
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 # Use higher security level for sensitive data
-pqc = PQCrypto(security_level='LEVEL5')  # 256-bit security
+pqc = QuantaWeave(security_level='LEVEL5')  # 256-bit security
 
 public_key, private_key = pqc.generate_keypair()
 
@@ -92,6 +94,30 @@ plaintext = pqc.decrypt(ciphertext, private_key)
 print(plaintext)  # b'Hello'
 ```
 
+## Examples
+
+Python snippets:
+
+```python
+from quantaweave import QuantaWeave
+
+pqc = QuantaWeave(security_level="LEVEL3")
+public_key, private_key = pqc.hqc_keypair()
+ciphertext, shared_secret = pqc.hqc_encapsulate(public_key)
+recovered = pqc.hqc_decapsulate(ciphertext, private_key)
+assert recovered == shared_secret
+```
+
+```python
+from quantaweave import FalconSig
+
+falcon = FalconSig("Falcon-1024")
+public_key, secret_key = falcon.keygen()
+message = b"sign me"
+signature = falcon.sign(secret_key, message)
+assert falcon.verify(public_key, message, signature)
+```
+
 ## Running Examples
 
 ```bash
@@ -100,24 +126,36 @@ python examples/basic_usage.py
 
 # Performance benchmark
 python examples/benchmark.py
+
+# Multi-party messaging demo
+python examples/multi_party.py
+
+# HQC KEM demo
+python examples/hqc_kem_usage.py
+
+# Falcon signature demo (requires GMP + C++ build)
+python examples/falcon_signature.py
 ```
 
 ## Running Tests
 
 ```bash
 # Run all tests
-python -m unittest tests/test_pqcrypto.py
+python -m unittest tests/test_quantaweave.py
+python -m unittest tests/test_kem_tests.py
+python -m unittest tests/test_hqc_kem.py
+python -m unittest tests/test_falcon_sig.py
 
 # Run specific test class
-python -m unittest tests.test_pqcrypto.TestEncryptionDecryption
+python -m unittest tests.test_quantaweave.TestEncryptionDecryption
 
 # Run with verbose output
-python -m unittest tests/test_pqcrypto.py -v
+python -m unittest tests/test_quantaweave.py -v
 ```
 
 ## API Reference
 
-### PQCrypto Class
+### QuantaWeave Class
 
 Main interface for the cryptography system.
 
@@ -128,6 +166,21 @@ Main interface for the cryptography system.
 - `encrypt(message, public_key)`: Encrypt a message
 - `decrypt(ciphertext, private_key)`: Decrypt a ciphertext
 - `get_security_level()`: Get security level in bits
+- `hqc_keypair()`: Generate HQC KEM keypair
+- `hqc_encapsulate(public_key)`: Encapsulate shared secret with HQC
+- `hqc_decapsulate(ciphertext, private_key)`: Decapsulate HQC ciphertext
+
+### FalconSig Class
+
+Signature API backed by a C++ binding.
+
+#### Methods
+
+- `__init__(parameter_set="Falcon-1024")`: Choose Falcon-512 or Falcon-1024
+- `keygen()`: Generate public and private keys
+- `sign(secret_key, message)`: Sign a message
+- `verify(public_key, message, signature)`: Verify a signature
+- `sizes()`: Return key and signature sizes
 
 ### KeyGenerator Class
 
@@ -180,15 +233,37 @@ Handles ciphertext decryption.
 
 ## Performance
 
-Approximate performance on modern hardware (single core):
+Use `examples/benchmark.py` to measure performance on your hardware. The `results_v2.md` file contains a baseline template with sample data only.
 
-| Operation | LEVEL1 | LEVEL3 | LEVEL5 |
-|-----------|--------|--------|--------|
-| Key Generation | ~10ms | ~40ms | ~150ms |
-| Encryption | ~10ms | ~40ms | ~150ms |
-| Decryption | ~10ms | ~40ms | ~150ms |
+## HQC KEM
 
-*Note: These are estimates for the pure Python implementation. Performance varies by hardware.*
+HQC is a code-based KEM used to establish shared secrets (not direct message encryption). The implementation includes parameter sets HQC-1/3/5.
+
+## Falcon Signatures
+
+Falcon is a lattice-based signature scheme. The binding exposes Falcon-512 and Falcon-1024 key generation, signing, and verification, using the vendor C++ implementation. Building the extension requires GMP, pybind11, and a C++20 compiler.
+
+### Usage
+
+```python
+from quantaweave import QuantaWeave
+
+pqc = QuantaWeave(security_level='LEVEL1')
+public_key, private_key = pqc.hqc_keypair()
+
+ciphertext, shared_secret = pqc.hqc_encapsulate(public_key)
+recovered_secret = pqc.hqc_decapsulate(ciphertext, private_key)
+
+assert shared_secret == recovered_secret
+```
+
+### Sizes (bytes)
+
+| HQC Variant | Public Key | Private Key | Ciphertext | Shared Secret |
+|-------------|------------|-------------|------------|---------------|
+| HQC-1 | 2241 | 2321 | 4433 | 32 |
+| HQC-3 | 4514 | 4602 | 8978 | 32 |
+| HQC-5 | 7237 | 7333 | 14421 | 32 |
 
 ## Implementation Details
 
@@ -219,6 +294,13 @@ Potential improvements for future versions:
 4. **Side-Channel Resistance**: Add constant-time implementations
 5. **Digital Signatures**: Implement signature schemes
 6. **Key Exchange**: Add key encapsulation mechanism (KEM)
+
+## Repository Notes
+
+- The `encapsulation_decapsulation.py` demo uses RSA-OAEP for key wrapping, which is **not** post-quantum secure. It is provided for hybrid KEM workflow illustration only.
+- Dependencies: the RSA demo requires the `cryptography` package; the LWE core in `quantaweave/` does not.
+- The `key_generation.py` file is a disabled RSA keygen example (wrapped in a docstring).
+- `kyber_dilithium_hqc.py` contains placeholders only and does not implement those schemes.
 
 ## References
 

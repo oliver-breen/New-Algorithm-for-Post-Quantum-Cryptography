@@ -1,5 +1,5 @@
 """
-Basic usage example for the PQCrypto library.
+Basic usage example for the QuantaWeave library.
 
 Demonstrates key generation, encryption, and decryption.
 """
@@ -10,7 +10,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 
 def main():
@@ -19,9 +19,9 @@ def main():
     print("=" * 60)
     print()
     
-    # Initialize the PQCrypto system with LEVEL1 security (128-bit)
-    print("Initializing PQCrypto with 128-bit security level...")
-    pqc = PQCrypto(security_level='LEVEL1')
+    # Initialize the QuantaWeave system with LEVEL1 security (128-bit)
+    print("Initializing QuantaWeave with 128-bit security level...")
+    pqc = QuantaWeave(security_level='LEVEL1')
     print(f"Security level: {pqc.get_security_level()} bits")
     print()
     
