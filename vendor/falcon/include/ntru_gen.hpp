@@ -340,10 +340,12 @@ reduce(const std::array<mpz_class, N>& f,
   const std::pair<mpz_class, mpz_class> fmm = min_max(f);
   const std::pair<mpz_class, mpz_class> gmm = min_max(g);
 
-  const size_t blen0 = std::max(
-    53ul,
-    std::max(std::max(approx_bit_len(fmm.first), approx_bit_len(fmm.second)),
-             std::max(approx_bit_len(gmm.first), approx_bit_len(gmm.second))));
+  const auto max_f_bits =
+    std::max(approx_bit_len(fmm.first), approx_bit_len(fmm.second));
+  const auto max_g_bits =
+    std::max(approx_bit_len(gmm.first), approx_bit_len(gmm.second));
+  const size_t blen0 =
+    std::max<size_t>(size_t{ 53 }, std::max(max_f_bits, max_g_bits));
 
   fft::cmplx f_adjust[N];
   fft::cmplx g_adjust[N];
@@ -368,11 +370,12 @@ reduce(const std::array<mpz_class, N>& f,
     const std::pair<mpz_class, mpz_class> Fmm = min_max(F);
     const std::pair<mpz_class, mpz_class> Gmm = min_max(G);
 
-    const size_t blen1 = std::max(
-      53ul,
-      std::max(
-        std::max(approx_bit_len(Fmm.first), approx_bit_len(Fmm.second)),
-        std::max(approx_bit_len(Gmm.first), approx_bit_len(Gmm.second))));
+    const auto max_F_bits =
+      std::max(approx_bit_len(Fmm.first), approx_bit_len(Fmm.second));
+    const auto max_G_bits =
+      std::max(approx_bit_len(Gmm.first), approx_bit_len(Gmm.second));
+    const size_t blen1 =
+      std::max<size_t>(size_t{ 53 }, std::max(max_F_bits, max_G_bits));
 
     if (blen1 < blen0) {
       break;

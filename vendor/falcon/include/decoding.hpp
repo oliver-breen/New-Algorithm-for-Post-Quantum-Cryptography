@@ -300,7 +300,8 @@ decompress_sig(const uint8_t* const __restrict sig,
       } else {
         bit_idx += k;
         for (; bit_idx < slen;) {
-          const auto ebits = std::min(8ul, slen - bit_idx);
+          const size_t ebits =
+            std::min<size_t>(size_t{ 8 }, slen - bit_idx);
 
           size_t v = 0;
           if (ebits < 8) {
@@ -340,7 +341,8 @@ decompress_sig(const uint8_t* const __restrict sig,
   failed |= (bit_idx >= slen) | (coeff_idx < N);
   if (!failed) {
     for (; bit_idx < slen;) {
-      const size_t ebits = std::min(8ul, slen - bit_idx);
+      const size_t ebits =
+        std::min<size_t>(size_t{ 8 }, slen - bit_idx);
 
       size_t v = 0;
       if (ebits == 8) [[likely]] {
