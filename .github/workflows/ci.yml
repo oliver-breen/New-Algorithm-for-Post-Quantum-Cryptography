@@ -69,6 +69,18 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install GMP dependency
+        shell: pwsh
+        run: |
+          $vcpkgDir = Join-Path $env:RUNNER_TEMP "vcpkg"
+          git clone https://github.com/microsoft/vcpkg $vcpkgDir
+          & "$vcpkgDir\bootstrap-vcpkg.bat"
+          & "$vcpkgDir\vcpkg.exe" install gmp:x64-windows
+          $includeDir = Join-Path $vcpkgDir "installed/x64-windows/include"
+          $libDir = Join-Path $vcpkgDir "installed/x64-windows/lib"
+          Add-Content -Path $env:GITHUB_ENV -Value "GMP_INCLUDE_DIR=$includeDir"
+          Add-Content -Path $env:GITHUB_ENV -Value "GMP_LIB_DIR=$libDir"
+
       - name: Install GUI build dependencies
         shell: pwsh
         run: |
