@@ -1,3 +1,32 @@
+## 🖥️ QuantaWeave GUI
+
+The QuantaWeave GUI provides a graphical interface for LWE encryption, HQC KEM, and Falcon signatures.
+
+### Launching the GUI
+
+- Install dependencies:
+	```bash
+	python -m pip install .[gui]
+	```
+- Run from source:
+	```bash
+	python gui/quantaweave_gui.py
+	```
+- Or run the standalone EXE if built with PyInstaller.
+
+### Features
+
+- **LWE Tab:** Key generation, encryption, and decryption with selectable security level.
+- **HQC KEM Tab:** Keypair, encapsulation, and decapsulation with encoding options.
+- **Falcon Tab:** Falcon-512/1024 keygen, sign, and verify.
+
+### Step-by-Step Example (LWE)
+1. Go to the LWE tab.
+2. Select security level and click Generate Keypair.
+3. Enter a message and click Encrypt.
+4. Paste ciphertext and private key, click Decrypt to recover the message.
+
+See [docs/GUI.md](docs/GUI.md) for a full illustrated guide and more examples.
 # QuantaWeave Post-Quantum Cryptography
 
 QuantaWeave is a Python implementation of a lattice-based post-quantum cryptographic system designed to be secure against quantum computer attacks, plus supporting demos and documentation.
