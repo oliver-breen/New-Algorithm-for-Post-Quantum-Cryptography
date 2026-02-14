@@ -166,6 +166,8 @@ Create the Base64 payload with PowerShell:
 
 Copy the single-line contents of `codesign.b64` into the `CODE_SIGNING_CERT` secret, then delete the intermediate file. When both secrets exist, the workflow signs `dist/QuantaWeaveGUI.exe` and `dist/QuantaWeaveGUI-Setup.exe` using `signtool` with a RFC 3161 timestamp.
 
+To test the workflow without real credentials, trigger the `ci` workflow manually (`Actions` → `ci` → **Run workflow**) and set **use_dummy_signing** to `true`. The pipeline will mint a short-lived self-signed certificate on the runner so the signing step executes end-to-end without touching your production keys.
+
 ## 🏗️ Project Structure
 
 ```
