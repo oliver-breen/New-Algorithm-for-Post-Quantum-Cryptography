@@ -4,7 +4,7 @@ Reed-Solomon codec for HQC.
 Ported from reed_solomon.c.
 """
 
-from typing import List
+from typing import List, Tuple
 
 from .parameters import HQCParameters
 from .gf import gf_mul, gf_inverse, GF_EXP, GF_LOG
@@ -62,7 +62,7 @@ def _compute_syndromes(params: HQCParameters, cdw: bytes) -> List[int]:
     return syndromes
 
 
-def _compute_elp(params: HQCParameters, syndromes: List[int]) -> (List[int], int):
+def _compute_elp(params: HQCParameters, syndromes: List[int]) -> Tuple[List[int], int]:
     sigma = [0] * (1 << params.param_fft)
     sigma[0] = 1
     deg_sigma = 0

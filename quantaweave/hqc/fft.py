@@ -4,7 +4,7 @@ Additive FFT helpers for HQC Reed-Solomon decoding.
 Ported from fft.c in the HQC reference implementation.
 """
 
-from typing import List
+from typing import List, Tuple
 
 from .parameters import HQCParameters
 from .gf import gf_mul, gf_square, gf_inverse, GF_LOG
@@ -22,7 +22,7 @@ def _compute_subset_sums(set_vals: List[int]) -> List[int]:
     return subset_sums
 
 
-def _radix(f: List[int], m_f: int) -> (List[int], List[int]):
+def _radix(f: List[int], m_f: int) -> Tuple[List[int], List[int]]:
     half = 1 << (m_f - 1)
     f0 = [0] * half
     f1 = [0] * half
@@ -68,7 +68,7 @@ def _radix(f: List[int], m_f: int) -> (List[int], List[int]):
     return f0, f1
 
 
-def _radix_big(f: List[int], m_f: int) -> (List[int], List[int]):
+def _radix_big(f: List[int], m_f: int) -> Tuple[List[int], List[int]]:
     n = 1 << (m_f - 2)
     q = [0] * (2 * n + 1)
     r = [0] * (2 * n + 1)
