@@ -2,7 +2,16 @@
 
 ## Overview
 
-This document provides a security analysis of the implemented post-quantum cryptography algorithm.
+This document provides a security analysis of the QuantaWeave implementation.
+
+## Scope and Repository Notes
+
+- The repository includes an LWE-based encryption library and a code-based HQC KEM implementation in `quantaweave/hqc/`.
+- The `encapsulation_decapsulation.py` demo uses RSA-OAEP for key wrapping, which is **not** post-quantum secure, and requires the `cryptography` package.
+- The `key_generation.py` file is a disabled RSA keygen example (wrapped in a docstring).
+- `kyber_dilithium_hqc.py` contains placeholders only and does not implement those schemes.
+- `results_v2.md` is a baseline template with sample data, not verified benchmarks.
+- Falcon signatures are provided via a C++ binding and require GMP at build/runtime.
 
 ## Threat Model
 
@@ -96,6 +105,25 @@ The security of our algorithm is based on the hardness of the LWE problem:
 - Security levels account for Grover's speedup
 - Parameters chosen to maintain target security post-quantum
 
+### 6. HQC Attack Surface Notes
+
+**Scope**: Applies to the HQC KEM implementation in `quantaweave/hqc/`.
+
+**Key points**:
+- **KEM-only**: HQC provides shared-secret encapsulation, not direct message encryption.
+- **Decoding failure rate (DFR)**: HQC has a non-zero DFR; callers must treat decapsulation failures as potential side-channel signals and avoid branching on failure in sensitive contexts.
+- **Side-channel exposure**: The RS/RM decoding steps and vector operations are not constant-time in Python.
+- **Key/ciphertext sizes**: HQC keys and ciphertexts are large; applications must account for bandwidth and storage overhead.
+
+### 7. Falcon Signature Notes
+
+**Scope**: Applies to the Falcon signature binding.
+
+**Key points**:
+- **C++ dependency**: Falcon uses a C++20 implementation with GMP; ensure your build chain is hardened and patched.
+- **Side-channel exposure**: No constant-time guarantees are provided by the binding layer.
+- **Input validation**: Enforce key and signature length checks before use.
+
 ## Implementation Security
 
 ### Strengths
@@ -150,6 +178,16 @@ The security of our algorithm is based on the hardness of the LWE problem:
    - Secure key storage (HSM, TPM)
    - Key rotation policies
    - Secure key deletion
+
+### Production Hardening Checklist
+
+- Enforce constant-time operations for sensitive code paths.
+- Avoid branching on HQC decapsulation failures (DFR signals).
+- Use cryptographically secure randomness and seed management.
+- Validate input sizes and enforce strict parsing of keys/ciphertexts.
+- Isolate KEM operations from application logic (process boundaries when possible).
+- Add regression/performance checks and continuous fuzzing for codecs.
+- Pin dependencies and use reproducible builds.
 
 ### Best Practices
 

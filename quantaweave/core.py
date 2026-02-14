@@ -1,0 +1,135 @@
+"""
+Core API for the QuantaWeave library.
+
+Provides a simple interface for key generation, encryption, and decryption.
+"""
+
+from typing import Tuple, Dict
+from .keygen import KeyGenerator
+from .encryption import Encryptor, Decryptor
+from .hqc import get_parameters as get_hqc_parameters
+from .hqc import hqc_kem_keypair, hqc_kem_encaps, hqc_kem_decaps
+
+
+class QuantaWeave:
+    """
+    Main interface for the QuantaWeave system.
+    
+    Provides methods for:
+    - Generating key pairs
+    - Encrypting messages
+    - Decrypting ciphertexts
+    
+    Example:
+        >>> pqc = QuantaWeave(security_level='LEVEL1')
+        >>> public_key, private_key = pqc.generate_keypair()
+        >>> ciphertext = pqc.encrypt(b"Hello, Quantum World!", public_key)
+        >>> plaintext = pqc.decrypt(ciphertext, private_key)
+        >>> print(plaintext)
+        b'Hello, Quantum World!'
+    """
+    
+    def __init__(self, security_level: str = 'LEVEL1'):
+        """
+        Initialize QuantaWeave system.
+        
+        Args:
+            security_level: Security level - 'LEVEL1' (128-bit), 
+                          'LEVEL3' (192-bit), or 'LEVEL5' (256-bit)
+        """
+        self.security_level = security_level
+        self.keygen = KeyGenerator(security_level)
+    
+    def generate_keypair(self) -> Tuple[Dict, Dict]:
+        """
+        Generate a new public/private key pair.
+        
+        Returns:
+            Tuple of (public_key, private_key)
+        """
+        return self.keygen.generate_keypair()
+    
+    @staticmethod
+    def encrypt(message: bytes, public_key: Dict) -> Dict:
+        """
+        Encrypt a message using a public key.
+        
+        Args:
+            message: Message to encrypt (bytes)
+            public_key: Public key dictionary
+            
+        Returns:
+            Ciphertext dictionary
+        """
+        encryptor = Encryptor(public_key)
+        return encryptor.encrypt(message)
+    
+    @staticmethod
+    def decrypt(ciphertext: Dict, private_key: Dict) -> bytes:
+        """
+        Decrypt a ciphertext using a private key.
+        
+        Args:
+            ciphertext: Ciphertext dictionary
+            private_key: Private key dictionary
+            
+        Returns:
+            Decrypted message (bytes)
+        """
+        decryptor = Decryptor(private_key)
+        return decryptor.decrypt(ciphertext)
+    
+    def get_security_level(self) -> int:
+        """
+        Get the security level in bits.
+        
+        Returns:
+            Security level (128, 192, or 256)
+        """
+        return self.keygen.get_security_level()
+
+    def hqc_keypair(self):
+        """
+        Generate an HQC KEM keypair.
+
+        Returns:
+            Tuple of (public_key, private_key) as bytes
+        """
+        params = self._get_hqc_params()
+        return hqc_kem_keypair(params)
+
+    def hqc_encapsulate(self, public_key: bytes):
+        """
+        Encapsulate a shared secret using HQC.
+
+        Args:
+            public_key: HQC public key bytes from hqc_keypair()
+
+        Returns:
+            Tuple of (ciphertext, shared_secret) as bytes
+        """
+        params = self._get_hqc_params()
+        return hqc_kem_encaps(params, public_key)
+
+    def hqc_decapsulate(self, ciphertext: bytes, private_key: bytes) -> bytes:
+        """
+        Decapsulate an HQC ciphertext to recover the shared secret.
+
+        Args:
+            ciphertext: HQC ciphertext from hqc_encapsulate()
+            private_key: HQC private key bytes from hqc_keypair()
+
+        Returns:
+            Shared secret as bytes
+        """
+        params = self._get_hqc_params()
+        return hqc_kem_decaps(params, ciphertext, private_key)
+
+    def _get_hqc_params(self):
+        level_map = {
+            "LEVEL1": "HQC-1",
+            "LEVEL3": "HQC-3",
+            "LEVEL5": "HQC-5",
+        }
+        hqc_name = level_map.get(self.security_level, "HQC-1")
+        return get_hqc_parameters(hqc_name)

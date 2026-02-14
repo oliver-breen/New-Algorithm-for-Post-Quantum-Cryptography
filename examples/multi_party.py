@@ -1,7 +1,7 @@
 """
 Multi-party encryption example.
 
-Demonstrates how multiple parties can use the PQCrypto system
+Demonstrates how multiple parties can use the QuantaWeave system
 to exchange encrypted messages.
 """
 
@@ -11,7 +11,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 
 def main():
@@ -20,8 +20,8 @@ def main():
     print("=" * 60)
     print()
     
-    # Initialize PQCrypto
-    pqc = PQCrypto(security_level='LEVEL1')
+    # Initialize QuantaWeave
+    pqc = QuantaWeave(security_level='LEVEL1')
     
     # Alice generates her key pair
     print("Alice: Generating key pair...")

@@ -1,14 +1,14 @@
 # Project Summary
 
-## Post-Quantum Cryptography Algorithm Implementation
+## QuantaWeave Algorithm Implementation
 
 ### Overview
 
-This project implements a complete post-quantum cryptographic system based on the **Learning With Errors (LWE)** problem, which provides security against both classical and quantum computer attacks.
+This project implements a post-quantum cryptographic system based on the **Learning With Errors (LWE)** problem, plus a code-based HQC KEM implementation and supporting demos/documentation.
 
 ### What Was Developed
 
-#### 1. Core Cryptographic Library (`pqcrypto/`)
+#### 1. Core Cryptographic Library (`quantaweave/`)
 
 **Mathematical Foundations** (`math_utils.py`):
 - Polynomial ring operations: R_q = Z_q[X]/(X^n + 1)
@@ -32,17 +32,34 @@ This project implements a complete post-quantum cryptographic system based on th
 
 **Main API** (`core.py`):
 - Simple, user-friendly interface
-- Unified PQCrypto class for all operations
+- Unified QuantaWeave class for all operations
 
-#### 2. Comprehensive Testing (`tests/`)
+**HQC KEM** (`quantaweave/hqc/`):
+- Code-based HQC KEM primitives (HQC-1/3/5)
+- PKE/KEM flow with parsing, symmetric primitives, and codecs
 
-**Test Coverage** (`test_pqcrypto.py`):
-- 18 unit tests covering all components
-- Tests for mathematical operations
-- Tests for key generation
-- Tests for encryption/decryption
-- Tests for different security levels
-- Edge case testing
+**Falcon Signatures** (`falcon.py`, `_falcon_bindings.cpp`):
+- C++ binding for Falcon-512/1024 signatures
+- Requires GMP and a C++20 compiler during build
+
+#### 2. Testing (`tests/`)
+
+**Test Coverage** (`test_quantaweave.py`):
+- Unit tests for math utilities, key generation, and encryption/decryption
+- Tests for different security levels and edge cases
+
+**KEM Placeholder** (`test_kem_tests.py`):
+- Contains placeholder tests for future KEM encapsulation/decapsulation work
+
+**HQC KEM Tests** (`test_hqc_kem.py`):
+- Round-trip tests for HQC-1, HQC-3, and HQC-5
+
+**Falcon Signature Tests** (`test_falcon_sig.py`):
+- Sign/verify round-trip checks for Falcon-1024
+
+**Benchmark Tests** (`test_benchmarks.py`):
+- Optional performance checks for LWE and HQC (disabled by default)
+ - Baseline thresholds in `benchmarks_baseline.json`
 
 #### 3. Examples (`examples/`)
 
@@ -57,6 +74,12 @@ This project implements a complete post-quantum cryptographic system based on th
 **Multi-Party Communication** (`multi_party.py`):
 - Demonstrates secure communication between multiple parties
 - Shows Alice and Bob exchanging encrypted messages
+
+**HQC KEM Demo** (`hqc_kem_usage.py`):
+- Demonstrates HQC key generation, encapsulation, and decapsulation
+
+**Falcon Signature Demo** (`falcon_signature.py`):
+- Demonstrates Falcon keygen, sign, and verify
 
 #### 4. Documentation (`docs/`)
 
@@ -83,15 +106,20 @@ This project implements a complete post-quantum cryptographic system based on th
 - Usage examples
 - Installation instructions
 
+**Production Guidance** (`docs/PRODUCTION.md`):
+- Dependency policy, API stability, and CI gates
+
+**Release Process** (`docs/RELEASE.md`):
+- Versioning and release checklist
+
 ### Key Features
 
 ✅ **Quantum-Resistant**: Based on lattice problems hard for quantum computers  
 ✅ **Multiple Security Levels**: 128, 192, and 256-bit security options  
-✅ **Pure Python**: No external dependencies for core functionality  
-✅ **Well-Tested**: 18 comprehensive unit tests, all passing  
+✅ **Pure Python Core**: No external dependencies for the LWE-based library  
+✅ **Well-Tested**: Unit tests for LWE and HQC KEM round-trips  
 ✅ **Documented**: Extensive documentation and examples  
 ✅ **Educational**: Clear code with detailed explanations  
-✅ **Secure Coding**: CodeQL scan shows no vulnerabilities  
 
 ### Technical Highlights
 
@@ -99,50 +127,95 @@ This project implements a complete post-quantum cryptographic system based on th
 **Type**: Lattice-based cryptography  
 **Security Basis**: Hard lattice problems (GapSVP)  
 **Quantum Resistance**: Yes  
-**Implementation**: Pure Python  
-**Tests**: 18/18 passing  
-**Security Scan**: 0 vulnerabilities  
+**Implementation**: Pure Python core library  
 
 ### Performance
 
-Approximate timings on modern hardware:
+Use `examples/benchmark.py` to measure performance on your hardware. The `results_v2.md` file contains a baseline template with sample data only.
 
-| Security Level | Key Gen | Encrypt | Decrypt | Total |
-|----------------|---------|---------|---------|-------|
-| LEVEL1 (128-bit) | ~18 ms | ~31 ms | ~12 ms | ~61 ms |
-| LEVEL3 (192-bit) | ~63 ms | ~136 ms | ~52 ms | ~252 ms |
-| LEVEL5 (256-bit) | ~253 ms | ~488 ms | ~231 ms | ~971 ms |
+### Examples
+
+Command-line:
+
+```bash
+python examples/basic_usage.py
+python examples/benchmark.py
+python examples/multi_party.py
+python examples/hqc_kem_usage.py
+python examples/falcon_signature.py
+python gui/quantaweave_gui.py
+```
+
+Python snippets:
+
+```python
+from quantaweave import QuantaWeave
+
+pqc = QuantaWeave(security_level="LEVEL3")
+public_key, private_key = pqc.hqc_keypair()
+ciphertext, shared_secret = pqc.hqc_encapsulate(public_key)
+recovered = pqc.hqc_decapsulate(ciphertext, private_key)
+assert recovered == shared_secret
+```
+
+```python
+from quantaweave import FalconSig
+
+falcon = FalconSig("Falcon-1024")
+public_key, secret_key = falcon.keygen()
+message = b"sign me"
+signature = falcon.sign(secret_key, message)
+assert falcon.verify(public_key, message, signature)
+```
 
 ### Files Created
 
 ```
 ├── .gitignore                    # Python gitignore
 ├── README.md                     # Updated with comprehensive info
-├── pqcrypto/
+├── quantaweave/
 │   ├── __init__.py              # Package initialization
 │   ├── core.py                  # Main API
 │   ├── parameters.py            # Security parameters
 │   ├── math_utils.py            # Mathematical utilities
 │   ├── keygen.py                # Key generation
 │   └── encryption.py            # Encryption/decryption
+│   └── falcon.py                 # Falcon signature wrapper
+│   └── _falcon_bindings.cpp      # Falcon C++ binding source
 ├── tests/
-│   └── test_pqcrypto.py         # Comprehensive test suite
+│   ├── test_quantaweave.py         # Core unit tests
+│   └── test_kem_tests.py        # KEM placeholder tests
+│   └── test_hqc_kem.py           # HQC KEM tests
+│   └── test_falcon_sig.py         # Falcon signature tests
+│   └── test_benchmarks.py         # Optional benchmark tests
+│   └── benchmarks_baseline.json    # Benchmark regression baseline
 ├── examples/
 │   ├── basic_usage.py           # Basic demonstration
 │   ├── benchmark.py             # Performance benchmarks
 │   └── multi_party.py           # Multi-party example
+│   └── hqc_kem_usage.py          # HQC KEM example
+│   └── falcon_signature.py        # Falcon signature example
+├── encapsulation_decapsulation.py  # RSA-OAEP key wrap demo (classical)
+├── key_generation.py               # RSA key generation demo (disabled by default)
+├── kyber_dilithium_hqc.py          # Placeholders for future integration
+├── results_v2.md                   # Baseline KEM test template
+├── pyproject.toml                  # Packaging metadata
+├── CHANGELOG.md                    # Release notes
+├── CONTRIBUTING.md                 # Contribution guide
 └── docs/
     ├── ALGORITHM.md             # Algorithm documentation
     └── SECURITY.md              # Security analysis
+    └── PRODUCTION.md            # Production guidance
+    └── RELEASE.md               # Release process
 ```
 
 ### How to Use
 
 ```python
-from pqcrypto import PQCrypto
+from quantaweave import QuantaWeave
 
 # Initialize
-pqc = PQCrypto(security_level='LEVEL1')
+pqc = QuantaWeave(security_level='LEVEL1')
 
 # Generate keys
 public_key, private_key = pqc.generate_keypair()
@@ -185,12 +258,8 @@ This project successfully implements a complete post-quantum cryptographic syste
 
 The implementation serves as an excellent educational resource for understanding lattice-based post-quantum cryptography and the LWE problem.
 
-### Testing Results
+### Notes on Demos and Placeholders
 
-✅ All 18 unit tests pass  
-✅ All examples run successfully  
-✅ CodeQL security scan: 0 vulnerabilities  
-✅ Code review feedback addressed  
-✅ Documentation complete  
-
-**Status**: ✅ **Complete and Ready for Review**
+- The RSA demos use the `cryptography` package and are not post-quantum secure.
+- `kyber_dilithium_hqc.py` is a placeholder only.
+- `results_v2.md` is a baseline template with sample data.
