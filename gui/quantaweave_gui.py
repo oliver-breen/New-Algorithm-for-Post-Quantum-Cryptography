@@ -1,3 +1,85 @@
+from pqcrypto.pqcrypto_suite import PQCryptoSuite
+
+class UnifiedPQTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout()
+        kem_row = QHBoxLayout()
+        self.kem_combo = QComboBox(); self.kem_combo.addItems(["kyber", "hqc"])
+        self.sig_combo = QComboBox(); self.sig_combo.addItems(["dilithium", "falcon"])
+        self.level_combo = QComboBox(); self.level_combo.addItems(["LEVEL1", "LEVEL3", "LEVEL5"])
+        kem_row.addWidget(QLabel("KEM")); kem_row.addWidget(self.kem_combo)
+        kem_row.addWidget(QLabel("Signature")); kem_row.addWidget(self.sig_combo)
+        kem_row.addWidget(QLabel("Level")); kem_row.addWidget(self.level_combo)
+        kem_row.addStretch(1)
+        layout.addLayout(kem_row)
+
+        # KEM Keypair
+        self.kem_pk = QLineEdit(); self.kem_sk = QLineEdit()
+        kem_btn = QPushButton("Generate KEM Keypair"); kem_btn.clicked.connect(self._on_kem_keygen)
+        layout.addWidget(QLabel("KEM Public Key")); layout.addWidget(self.kem_pk)
+        layout.addWidget(QLabel("KEM Private Key")); layout.addWidget(self.kem_sk)
+        layout.addWidget(kem_btn)
+
+        # Encaps/Decaps
+        self.kem_ct = QLineEdit(); self.kem_ss = QLineEdit(); self.kem_rec = QLineEdit()
+        kem_enc_btn = QPushButton("Encapsulate"); kem_enc_btn.clicked.connect(self._on_kem_encaps)
+        kem_dec_btn = QPushButton("Decapsulate"); kem_dec_btn.clicked.connect(self._on_kem_decaps)
+        layout.addWidget(QLabel("KEM Ciphertext")); layout.addWidget(self.kem_ct)
+        layout.addWidget(QLabel("KEM Shared Secret")); layout.addWidget(self.kem_ss)
+        layout.addWidget(QLabel("KEM Recovered Secret")); layout.addWidget(self.kem_rec)
+        layout.addWidget(kem_enc_btn); layout.addWidget(kem_dec_btn)
+
+        # Signature Keypair
+        self.sig_pk = QLineEdit(); self.sig_sk = QLineEdit()
+        sig_btn = QPushButton("Generate Sig Keypair"); sig_btn.clicked.connect(self._on_sig_keygen)
+        layout.addWidget(QLabel("Signature Public Key")); layout.addWidget(self.sig_pk)
+        layout.addWidget(QLabel("Signature Secret Key")); layout.addWidget(self.sig_sk)
+        layout.addWidget(sig_btn)
+
+        # Sign/Verify
+        self.sig_msg = QLineEdit(); self.sig_sig = QLineEdit(); self.sig_result = QLineEdit(); self.sig_result.setReadOnly(True)
+        sign_btn = QPushButton("Sign"); sign_btn.clicked.connect(self._on_sign)
+        verify_btn = QPushButton("Verify"); verify_btn.clicked.connect(self._on_verify)
+        layout.addWidget(QLabel("Message to Sign")); layout.addWidget(self.sig_msg)
+        layout.addWidget(QLabel("Signature")); layout.addWidget(self.sig_sig)
+        layout.addWidget(sign_btn); layout.addWidget(verify_btn)
+        layout.addWidget(QLabel("Verify Result")); layout.addWidget(self.sig_result)
+        self.setLayout(layout)
+
+    def _suite(self):
+        return PQCryptoSuite(
+            kem=self.kem_combo.currentText(),
+            sig=self.sig_combo.currentText(),
+            level=self.level_combo.currentText(),
+        )
+    def _on_kem_keygen(self):
+        suite = self._suite()
+        pk, sk = suite.kem_keypair()
+        self.kem_pk.setText(str(pk)); self.kem_sk.setText(str(sk))
+    def _on_kem_encaps(self):
+        suite = self._suite()
+        ct, ss = suite.kem_encapsulate(self.kem_pk.text())
+        self.kem_ct.setText(str(ct)); self.kem_ss.setText(str(ss))
+    def _on_kem_decaps(self):
+        suite = self._suite()
+        rec = suite.kem_decapsulate(self.kem_ct.text(), self.kem_sk.text())
+        self.kem_rec.setText(str(rec))
+    def _on_sig_keygen(self):
+        suite = self._suite()
+        pk, sk = suite.sig_keypair()
+        self.sig_pk.setText(str(pk)); self.sig_sk.setText(str(sk))
+    def _on_sign(self):
+        suite = self._suite()
+        sig = suite.sign(self.sig_sk.text(), self.sig_msg.text().encode("utf-8"))
+        self.sig_sig.setText(str(sig))
+    def _on_verify(self):
+        suite = self._suite()
+        valid = suite.verify(self.sig_pk.text(), self.sig_msg.text().encode("utf-8"), self.sig_sig.text())
+        self.sig_result.setText("valid" if valid else "invalid")
 import base64
 import json
 import sys
@@ -324,6 +406,7 @@ class QuantaWeaveWindow(QMainWindow):
         tabs.addTab(LweTab(), "LWE")
         tabs.addTab(HqcTab(), "HQC KEM")
         tabs.addTab(FalconTab(), "Falcon")
+        tabs.addTab(UnifiedPQTab(), "PQ Suite")
         self.setCentralWidget(tabs)
 
 

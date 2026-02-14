@@ -1,5 +1,17 @@
 ## 🖥️ QuantaWeave GUI
 
+### Unified PQ Suite Tab
+
+The GUI now features a **PQ Suite** tab, providing a unified interface for post-quantum KEM and signature operations. You can select Kyber or HQC for KEM, and Dilithium or Falcon for signatures, at any security level. Generate keypairs, encapsulate/decapsulate shared secrets, and sign/verify messages—all from one place.
+
+**How to use:**
+1. Go to the PQ Suite tab.
+2. Select your desired KEM, signature, and security level.
+3. Generate KEM and signature keypairs.
+4. Use the Encapsulate/Decapsulate and Sign/Verify buttons as needed.
+
+This makes it easy to experiment with and compare different post-quantum cryptography standards in a single workflow.
+
 The QuantaWeave GUI provides a graphical interface for LWE encryption, HQC KEM, and Falcon signatures.
 
 ### Launching the GUI
