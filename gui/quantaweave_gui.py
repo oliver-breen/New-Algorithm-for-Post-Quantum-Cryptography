@@ -1,3 +1,19 @@
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QPlainTextEdit,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from pqcrypto.pqcrypto_suite import PQCryptoSuite
 
 class UnifiedPQTab(QWidget):
