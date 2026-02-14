@@ -310,6 +310,7 @@ This is an **educational implementation**. For production use:
 
 **DO NOT USE IN PRODUCTION WITHOUT PROFESSIONAL SECURITY REVIEW**
 
+
 ## 📌 Notes on Demos and Placeholders
 
 - The `encapsulation_decapsulation.py` demo uses RSA-OAEP for key wrapping, which is **not** post-quantum secure. It is provided for hybrid KEM workflow illustration only.
@@ -317,7 +318,8 @@ This is an **educational implementation**. For production use:
 - The `key_generation.py` file is currently a disabled RSA keygen example (wrapped in a docstring).
 - `kyber_dilithium_hqc.py` contains placeholders only and does not implement those schemes.
 - `results_v2.md` contains a baseline test template with sample data, not verified benchmarks.
-- Falcon signatures use a C++ extension and require GMP, pybind11, and a C++20 compiler to build.
+
+Falcon signatures are now fully supported and build successfully on Windows using MSYS2/MinGW, GMP, pybind11, and a C++20 compiler. See the build instructions above for details.
 
 ## 📄 License
 
