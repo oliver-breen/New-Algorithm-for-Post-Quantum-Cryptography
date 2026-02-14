@@ -150,6 +150,22 @@ pyinstaller --noconfirm --clean QuantaWeaveGUI.spec
 
 PyInstaller leaves detailed logs in `build/QuantaWeaveGUI/`. If Windows Defender locks `build/QuantaWeaveGUI/localpycs`, delete the `build/` directory before re-running.
 
+### Automated Builds & Code Signing
+
+The GitHub Actions workflow now produces Windows artifacts (EXE, installer, ZIP) via the `build-windows` job. Optional code signing happens when two repository secrets are configured:
+
+- `CODE_SIGNING_CERT`: Base64 representation of your `.pfx` certificate (see below).
+- `CODE_SIGNING_PASSWORD`: Password protecting the `.pfx` file.
+
+Create the Base64 payload with PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("path/to/codesign.pfx")) |
+	Set-Content -NoNewline codesign.b64
+```
+
+Copy the single-line contents of `codesign.b64` into the `CODE_SIGNING_CERT` secret, then delete the intermediate file. When both secrets exist, the workflow signs `dist/QuantaWeaveGUI.exe` and `dist/QuantaWeaveGUI-Setup.exe` using `signtool` with a RFC 3161 timestamp.
+
 ## 🏗️ Project Structure
 
 ```

@@ -49,3 +49,64 @@ jobs:
           BENCHMARK_USE_BASELINE: "1"
           BENCHMARK_TOLERANCE: "0.25"
         run: python -m unittest tests/test_benchmarks.py -v
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install GUI build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[gui]"
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: pyinstaller --noconfirm --clean QuantaWeaveGUI.spec
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: iscc installers\QuantaWeaveGUI.iss
+
+      - name: Sign artifacts (optional)
+        shell: pwsh
+        env:
+          CODE_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT }}
+          CODE_SIGNING_PASSWORD: ${{ secrets.CODE_SIGNING_PASSWORD }}
+        run: |
+          if (-not $env:CODE_SIGNING_CERT -or -not $env:CODE_SIGNING_PASSWORD) {
+            Write-Host "Code signing secrets not configured; skipping signing.";
+            exit 0
+          }
+
+          $certPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:CODE_SIGNING_CERT))
+          $timestamp = "http://timestamp.digicert.com"
+
+          signtool sign /tr $timestamp /td SHA256 /fd SHA256 /f $certPath /p $env:CODE_SIGNING_PASSWORD dist\QuantaWeaveGUI.exe
+          signtool sign /tr $timestamp /td SHA256 /fd SHA256 /f $certPath /p $env:CODE_SIGNING_PASSWORD dist\QuantaWeaveGUI-Setup.exe
+
+      - name: Zip standalone executable
+        shell: pwsh
+        run: Compress-Archive -Path dist\QuantaWeaveGUI.exe -DestinationPath dist\QuantaWeaveGUI.zip -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuantaWeaveGUI-windows
+          path: |
+            dist/QuantaWeaveGUI.exe
+            dist/QuantaWeaveGUI-Setup.exe
+            dist/QuantaWeaveGUI.zip
