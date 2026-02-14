@@ -60,11 +60,11 @@ bit_rev(const size_t v)
 // Compile-time compute table holding powers of ζ s.t. N ∈ {512, 1024} -
 // required for computing NTT over Z_q s.t. q = 12289
 template<const size_t N>
-static inline constexpr std::array<ff::ff_t, N>
+inline std::array<ff::ff_t, N>
 compute_powers_of_ζ()
   requires((N == FALCON512_N) || (N == FALCON1024_N))
 {
-  std::array<ff::ff_t, N> res;
+  std::array<ff::ff_t, N> res{};
 
   if constexpr (N == FALCON512_N) {
     for (size_t i = 0; i < N; i++) {
@@ -79,34 +79,46 @@ compute_powers_of_ζ()
   return res;
 }
 
-constexpr auto POWERS_OF_ζ_512 = compute_powers_of_ζ<FALCON512_N>();
-constexpr auto POWERS_OF_ζ_1024 = compute_powers_of_ζ<FALCON1024_N>();
+template<const size_t N>
+inline const std::array<ff::ff_t, N>&
+powers_of_ζ()
+  requires((N == FALCON512_N) || (N == FALCON1024_N))
+{
+  static const auto table = compute_powers_of_ζ<N>();
+  return table;
+}
 
 // Compile-time compute table holding negated powers of ζ s.t. N ∈ {512, 1024} -
 // required for computing iNTT over Z_q s.t. q = 12289. This table is computed
 // using another precomputed table POWERS_OF_ζ.
 template<const size_t N>
-static inline constexpr std::array<ff::ff_t, N>
+inline std::array<ff::ff_t, N>
 compute_neg_powers_of_ζ()
   requires((N == FALCON512_N) || (N == FALCON1024_N))
 {
-  std::array<ff::ff_t, N> res;
+  std::array<ff::ff_t, N> res{};
 
   if constexpr (N == FALCON512_N) {
     for (size_t i = 0; i < N; i++) {
-      res[i] = -POWERS_OF_ζ_512[i];
+      res[i] = -powers_of_ζ<FALCON512_N>()[i];
     }
   } else {
     for (size_t i = 0; i < N; i++) {
-      res[i] = -POWERS_OF_ζ_1024[i];
+      res[i] = -powers_of_ζ<FALCON1024_N>()[i];
     }
   }
 
   return res;
 }
 
-constexpr auto NEG_POWERS_OF_ζ_512 = compute_neg_powers_of_ζ<FALCON512_N>();
-constexpr auto NEG_POWERS_OF_ζ_1024 = compute_neg_powers_of_ζ<FALCON1024_N>();
+template<const size_t N>
+inline const std::array<ff::ff_t, N>&
+neg_powers_of_ζ()
+  requires((N == FALCON512_N) || (N == FALCON1024_N))
+{
+  static const auto table = compute_neg_powers_of_ζ<N>();
+  return table;
+}
 
 // Given a polynomial f with {512, 1024} coefficients s.t. each coefficient ∈
 // Z_q, this routine computes number theoretic transform using Cooley-Tukey
@@ -134,9 +146,9 @@ ntt(ff::ff_t* const __restrict poly)
       ff::ff_t ζ_exp{};
 
       if constexpr (LOG2N == FALCON512_LOG2N) {
-        ζ_exp = POWERS_OF_ζ_512[k_now];
+        ζ_exp = powers_of_ζ<FALCON512_N>()[k_now];
       } else {
-        ζ_exp = POWERS_OF_ζ_1024[k_now];
+        ζ_exp = powers_of_ζ<FALCON1024_N>()[k_now];
       }
 
       for (size_t i = start; i < start + len; i++) {
@@ -175,9 +187,9 @@ intt(ff::ff_t* const __restrict poly)
       ff::ff_t neg_ζ_exp{};
 
       if constexpr (LOG2N == FALCON512_LOG2N) {
-        neg_ζ_exp = NEG_POWERS_OF_ζ_512[k_now];
+        neg_ζ_exp = neg_powers_of_ζ<FALCON512_N>()[k_now];
       } else {
-        neg_ζ_exp = NEG_POWERS_OF_ζ_1024[k_now];
+        neg_ζ_exp = neg_powers_of_ζ<FALCON1024_N>()[k_now];
       }
 
       for (size_t i = start; i < start + len; i++) {

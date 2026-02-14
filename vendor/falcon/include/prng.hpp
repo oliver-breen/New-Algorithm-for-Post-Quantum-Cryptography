@@ -24,11 +24,11 @@ public:
   {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint8_t> dis{};
+    std::uniform_int_distribution<uint16_t> dis(0, 0xff);
 
     uint8_t seed[32];
     for (size_t i = 0; i < sizeof(seed); i++) {
-      seed[i] = dis(gen);
+      seed[i] = static_cast<uint8_t>(dis(gen));
     }
 
     state.hash(seed, sizeof(seed));

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <ostream>
 #include <random>
+#include <type_traits>
 
 // Prime field arithmetic over Z_q, for Falcon PQC s.t. q = 3 * (2 ^ 12) + 1
 namespace ff {
@@ -65,15 +66,34 @@ struct ff_t
 {
   uint16_t v = 0u;
 
-  // Construct field element, holding canonical value _v % Q
-  inline constexpr ff_t(const uint16_t _v = 0)
+  inline constexpr ff_t() = default;
+
+  template<typename T>
+    requires(std::is_integral_v<T>)
+  inline constexpr ff_t(T value)
+    : v(canonicalize(value))
+  {}
+
+private:
+  template<typename T>
+    requires(std::is_integral_v<T>)
+  static constexpr uint16_t canonicalize(T value)
   {
-    if (_v < Q) [[likely]] {
-      v = _v;
+    if constexpr (std::is_signed_v<T>) {
+      int64_t tmp = static_cast<int64_t>(value);
+      tmp %= static_cast<int64_t>(Q);
+      if (tmp < 0) {
+        tmp += static_cast<int64_t>(Q);
+      }
+      return static_cast<uint16_t>(tmp);
     } else {
-      v = _v % Q;
+      uint64_t tmp = static_cast<uint64_t>(value);
+      tmp %= static_cast<uint64_t>(Q);
+      return static_cast<uint16_t>(tmp);
     }
   }
+
+public:
 
   // Construct field element, holding canonical value 0
   static inline constexpr ff_t zero() { return ff_t{ 0 }; }
