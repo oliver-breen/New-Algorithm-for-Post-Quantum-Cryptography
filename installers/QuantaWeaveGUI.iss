@@ -13,15 +13,16 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename=QuantaWeaveGUI-Setup
-OutputDir=dist
+
+OutputDir=..\dist
+
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=assets\quantaweave.ico
+SetupIconFile=..\assets\quantaweave.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
@@ -29,7 +30,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: {#MyAppExeSource}; DestDir: "{app}"; Flags: ignoreversion
+Source: ..\dist\QuantaWeaveGUI.exe; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
