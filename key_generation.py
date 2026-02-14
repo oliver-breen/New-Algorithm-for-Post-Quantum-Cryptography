@@ -20,6 +20,7 @@ def generate_key_pair(key_size=default_key_size):
     public_key = private_key.public_key()
     return private_key, public_key
 
+
 def save_key_to_file(key, filename, is_private=False):
     """
     Save a key (public or private) to a file.
@@ -39,6 +40,7 @@ def save_key_to_file(key, filename, is_private=False):
 
     with open(filename, "wb") as key_file:
         key_file.write(pem)
+
 
 if __name__ == "__main__":
     # Generate keys
