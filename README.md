@@ -133,17 +133,22 @@ assert falcon.verify(public_key, message, signature)
 
 ## 🪟 Windows GUI
 
-Run the GUI:
+Run the GUI (ensures PyQt6 is installed):
 
 ```bash
+python -m pip install .[gui]
 python gui/quantaweave_gui.py
 ```
 
-Build a single-file executable (Windows):
+Build the signed bootloader + one-file executable:
 
 ```bash
-pyinstaller --onefile --windowed gui/quantaweave_gui.py --name QuantaWeaveGUI --icon assets/quantaweave.ico
+python -m pip install .[gui]
+pyinstaller --noconfirm --clean QuantaWeaveGUI.spec
+# output: dist/QuantaWeaveGUI.exe (icon embedded if assets/quantaweave.ico exists)
 ```
+
+PyInstaller leaves detailed logs in `build/QuantaWeaveGUI/`. If Windows Defender locks `build/QuantaWeaveGUI/localpycs`, delete the `build/` directory before re-running.
 
 ## 🏗️ Project Structure
 
