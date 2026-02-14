@@ -88,13 +88,13 @@ jobs:
         run: iscc installers\QuantaWeaveGUI.iss
 
       - name: Generate dummy signing certificate (workflow_dispatch testing)
-          if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_dummy_signing == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_dummy_signing == 'true' }}
         shell: pwsh
         run: |
-            if ($env:CODE_SIGNING_CERT -and $env:CODE_SIGNING_PASSWORD) {
-              Write-Host "Real code-signing secrets detected; skipping dummy cert.";
-              exit 0
-            }
+          if ($env:CODE_SIGNING_CERT -and $env:CODE_SIGNING_PASSWORD) {
+            Write-Host "Real code-signing secrets detected; skipping dummy cert.";
+            exit 0
+          }
           $password = "dummy-password-123!"
           $cert = New-SelfSignedCertificate -DnsName "quantaweave.local" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddDays(30)
           $securePassword = ConvertTo-SecureString -String $password -Force -AsPlainText
