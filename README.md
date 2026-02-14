@@ -209,6 +209,65 @@ Copy the single-line contents of `codesign.b64` into the `CODE_SIGNING_CERT` sec
 
 To test the workflow without real credentials, trigger the `ci` workflow manually (`Actions` → `ci` → **Run workflow**) and set **use_dummy_signing** to `true`. The pipeline will mint a short-lived self-signed certificate on the runner so the signing step executes end-to-end without touching your production keys.
 
+## 🛠️ Building the Falcon Extension (Required for Falcon Signatures)
+
+The Falcon signature scheme requires a native C++ extension (`quantaweave._falcon`). If you see an error like:
+
+> Falcon extension is not available. Build from source with GMP and pybind11.
+
+You must build the extension before Falcon signatures will work in the GUI or Python API.
+
+### Prerequisites
+
+- **GMP** (GNU Multiple Precision Arithmetic Library)
+- **pybind11** (Python bindings for C++)
+- **C++20 compiler** (MSVC, clang, or gcc)
+
+Install pybind11:
+
+```bash
+python -m pip install pybind11
+```
+
+#### Windows: Install GMP
+- Download GMP for Windows (e.g., from MSYS2 or prebuilt binaries)
+- Set environment variables before building:
+	- `GMP_INCLUDE_DIR` (e.g., `C:/msys64/mingw64/include`)
+	- `GMP_LIB_DIR` (e.g., `C:/msys64/mingw64/lib`)
+
+#### Linux/macOS: Install GMP
+- Use your package manager:
+	- Ubuntu: `sudo apt-get install libgmp-dev`
+	- macOS: `brew install gmp`
+
+### Build the Falcon extension
+
+From the project root:
+
+```bash
+python setup.py build_ext --inplace
+# or, for editable install:
+python -m pip install -e .[dev]
+```
+
+If successful, you should see a file like `quantaweave/_falcon.*.so` (Linux/macOS) or `.pyd` (Windows).
+
+### Troubleshooting
+
+- **ImportError:**
+	- Make sure you are using the correct Python environment.
+	- Check that `pybind11` and `gmp` are installed and visible to your compiler.
+- **MSVC errors:**
+	- Ensure you have a recent Visual Studio with C++20 support.
+	- Set the correct `GMP_INCLUDE_DIR` and `GMP_LIB_DIR`.
+- **Linker errors:**
+	- Confirm that the GMP library is found and matches your compiler architecture (x64 vs x86).
+- **Still stuck?**
+	- See `setup.py` for build logic and environment variables.
+	- Open an issue with your build log and platform details.
+
+Once built, restart the GUI or your Python session. Falcon signatures should now work.
+
 ## 🏗️ Project Structure
 
 ```
