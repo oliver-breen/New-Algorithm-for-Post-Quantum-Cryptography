@@ -44,3 +44,9 @@ htmlcov/
 # Temporary files
 *.tmp
 .tmp/
+
+# Include bundled HQC SHAKE implementation
+!vendor/hqc/lib/
+!vendor/hqc/lib/fips202/
+!vendor/hqc/lib/fips202/fips202.c
+!vendor/hqc/lib/fips202/fips202.h

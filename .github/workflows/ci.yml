@@ -5,6 +5,13 @@ on:
   pull_request:
   schedule:
     - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      use_dummy_signing:
+        description: "Generate a temporary test certificate for the Windows build job"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -49,3 +56,81 @@ jobs:
           BENCHMARK_USE_BASELINE: "1"
           BENCHMARK_TOLERANCE: "0.25"
         run: python -m unittest tests/test_benchmarks.py -v
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install GUI build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[gui]"
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: pyinstaller --noconfirm --clean QuantaWeaveGUI.spec
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: iscc installers\QuantaWeaveGUI.iss
+
+      - name: Generate dummy signing certificate (workflow_dispatch testing)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.use_dummy_signing == 'true' }}
+        shell: pwsh
+        run: |
+          if ($env:CODE_SIGNING_CERT -and $env:CODE_SIGNING_PASSWORD) {
+            Write-Host "Real code-signing secrets detected; skipping dummy cert.";
+            exit 0
+          }
+          $password = "dummy-password-123!"
+          $cert = New-SelfSignedCertificate -DnsName "quantaweave.local" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddDays(30)
+          $securePassword = ConvertTo-SecureString -String $password -Force -AsPlainText
+          $certPath = Join-Path $env:RUNNER_TEMP "dummy-signing.pfx"
+          Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $securePassword | Out-Null
+          $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($certPath))
+          Add-Content -Path $env:GITHUB_ENV -Value "CODE_SIGNING_CERT=$base64"
+          Add-Content -Path $env:GITHUB_ENV -Value "CODE_SIGNING_PASSWORD=$password"
+
+      - name: Sign artifacts (optional)
+        shell: pwsh
+        env:
+          CODE_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT }}
+          CODE_SIGNING_PASSWORD: ${{ secrets.CODE_SIGNING_PASSWORD }}
+        run: |
+          if (-not $env:CODE_SIGNING_CERT -or -not $env:CODE_SIGNING_PASSWORD) {
+            Write-Host "Code signing secrets not configured; skipping signing.";
+            exit 0
+          }
+
+          $certPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:CODE_SIGNING_CERT))
+          $timestamp = "http://timestamp.digicert.com"
+
+          signtool sign /tr $timestamp /td SHA256 /fd SHA256 /f $certPath /p $env:CODE_SIGNING_PASSWORD dist\QuantaWeaveGUI.exe
+          signtool sign /tr $timestamp /td SHA256 /fd SHA256 /f $certPath /p $env:CODE_SIGNING_PASSWORD dist\QuantaWeaveGUI-Setup.exe
+
+      - name: Zip standalone executable
+        shell: pwsh
+        run: Compress-Archive -Path dist\QuantaWeaveGUI.exe -DestinationPath dist\QuantaWeaveGUI.zip -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuantaWeaveGUI-windows
+          path: |
+            dist/QuantaWeaveGUI.exe
+            dist/QuantaWeaveGUI-Setup.exe
+            dist/QuantaWeaveGUI.zip

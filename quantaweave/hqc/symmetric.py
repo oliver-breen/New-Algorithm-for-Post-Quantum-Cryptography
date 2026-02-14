@@ -6,7 +6,7 @@ This is a Python port of symmetric.c from the HQC reference code.
 
 from dataclasses import dataclass
 from hashlib import sha3_256, sha3_512, shake_256
-from typing import Optional
+from typing import Optional, Protocol
 
 from .parameters import HQCParameters
 
@@ -17,12 +17,21 @@ HQC_H_FCT_DOMAIN = 1
 HQC_I_FCT_DOMAIN = 2
 HQC_J_FCT_DOMAIN = 3
 
+class _ShakeLike(Protocol):
+    """Protocol describing hashlib SHAKE objects."""
+
+    def update(self, data: bytes) -> None:  # pragma: no cover - protocol definition
+        ...
+
+    def digest(self, length: int) -> bytes:  # pragma: no cover - protocol definition
+        ...
+
 
 @dataclass
 class Shake256XOF:
     """Incremental SHAKE-256 XOF with domain separation."""
 
-    _ctx: object
+    _ctx: _ShakeLike
     _offset: int = 0
 
     @classmethod
@@ -48,7 +57,7 @@ class Shake256XOF:
 class Shake256PRNG:
     """SHAKE-256 based PRNG with domain separation."""
 
-    _ctx: object
+    _ctx: _ShakeLike
     _offset: int = 0
 
     @classmethod

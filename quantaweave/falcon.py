@@ -1,11 +1,24 @@
-from typing import Tuple
+import importlib
+from typing import Optional, Protocol, Tuple, cast
+
+
+class _FalconBindings(Protocol):
+    def keygen(self, n: int) -> Tuple[bytes, bytes]: ...
+
+    def sign(self, n: int, secret_key: bytes, message: bytes) -> bytes: ...
+
+    def verify(self, n: int, public_key: bytes, message: bytes, signature: bytes) -> bool: ...
+
+    def sizes(self, n: int) -> Tuple[int, int, int]: ...
+
 
 try:
-    from . import _falcon as _falcon_lib
+    _falcon_module = importlib.import_module("quantaweave._falcon")
 except Exception as exc:  # pragma: no cover - import-time guard
-    _falcon_lib = None
-    _falcon_import_error = exc
+    _falcon_lib: Optional[_FalconBindings] = None
+    _falcon_import_error: Optional[Exception] = exc
 else:
+    _falcon_lib = cast(_FalconBindings, _falcon_module)
     _falcon_import_error = None
 
 
@@ -22,28 +35,28 @@ class FalconSig:
 
     def keygen(self) -> Tuple[bytes, bytes]:
         """Generate a Falcon public/secret keypair."""
-        self._require_backend()
-        return _falcon_lib.keygen(self._n)
+        backend = self._require_backend()
+        return backend.keygen(self._n)
 
     def sign(self, secret_key: bytes, message: bytes) -> bytes:
         """Sign a message with a Falcon secret key."""
-        self._require_backend()
+        backend = self._require_backend()
         skey = self._ensure_bytes(secret_key, "secret_key")
         msg = self._ensure_bytes(message, "message")
-        return _falcon_lib.sign(self._n, skey, msg)
+        return backend.sign(self._n, skey, msg)
 
     def verify(self, public_key: bytes, message: bytes, signature: bytes) -> bool:
         """Verify a Falcon signature."""
-        self._require_backend()
+        backend = self._require_backend()
         pkey = self._ensure_bytes(public_key, "public_key")
         msg = self._ensure_bytes(message, "message")
         sig = self._ensure_bytes(signature, "signature")
-        return _falcon_lib.verify(self._n, pkey, msg, sig)
+        return backend.verify(self._n, pkey, msg, sig)
 
     def sizes(self) -> Tuple[int, int, int]:
         """Return (public_key_len, secret_key_len, signature_len)."""
-        self._require_backend()
-        return _falcon_lib.sizes(self._n)
+        backend = self._require_backend()
+        return backend.sizes(self._n)
 
     @staticmethod
     def _ensure_bytes(value: bytes, label: str) -> bytes:
@@ -66,8 +79,9 @@ class FalconSig:
         raise ValueError("Unsupported Falcon parameter set")
 
     @staticmethod
-    def _require_backend() -> None:
+    def _require_backend() -> _FalconBindings:
         if _falcon_lib is None:
             raise RuntimeError(
                 "Falcon extension is not available. Build from source with GMP and pybind11."
             ) from _falcon_import_error
+        return _falcon_lib

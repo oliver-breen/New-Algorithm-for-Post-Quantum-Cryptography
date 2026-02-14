@@ -133,17 +133,40 @@ assert falcon.verify(public_key, message, signature)
 
 ## 🪟 Windows GUI
 
-Run the GUI:
+Run the GUI (ensures PyQt6 is installed):
 
 ```bash
+python -m pip install .[gui]
 python gui/quantaweave_gui.py
 ```
 
-Build a single-file executable (Windows):
+Build the signed bootloader + one-file executable:
 
 ```bash
-pyinstaller --onefile --windowed gui/quantaweave_gui.py --name QuantaWeaveGUI --icon assets/quantaweave.ico
+python -m pip install .[gui]
+pyinstaller --noconfirm --clean QuantaWeaveGUI.spec
+# output: dist/QuantaWeaveGUI.exe (icon embedded if assets/quantaweave.ico exists)
 ```
+
+PyInstaller leaves detailed logs in `build/QuantaWeaveGUI/`. If Windows Defender locks `build/QuantaWeaveGUI/localpycs`, delete the `build/` directory before re-running.
+
+### Automated Builds & Code Signing
+
+The GitHub Actions workflow now produces Windows artifacts (EXE, installer, ZIP) via the `build-windows` job. Optional code signing happens when two repository secrets are configured:
+
+- `CODE_SIGNING_CERT`: Base64 representation of your `.pfx` certificate (see below).
+- `CODE_SIGNING_PASSWORD`: Password protecting the `.pfx` file.
+
+Create the Base64 payload with PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("path/to/codesign.pfx")) |
+	Set-Content -NoNewline codesign.b64
+```
+
+Copy the single-line contents of `codesign.b64` into the `CODE_SIGNING_CERT` secret, then delete the intermediate file. When both secrets exist, the workflow signs `dist/QuantaWeaveGUI.exe` and `dist/QuantaWeaveGUI-Setup.exe` using `signtool` with a RFC 3161 timestamp.
+
+To test the workflow without real credentials, trigger the `ci` workflow manually (`Actions` → `ci` → **Run workflow**) and set **use_dummy_signing** to `true`. The pipeline will mint a short-lived self-signed certificate on the runner so the signing step executes end-to-end without touching your production keys.
 
 ## 🏗️ Project Structure
 
