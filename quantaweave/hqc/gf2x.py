@@ -32,15 +32,24 @@ def _schoolbook_mul(a: List[int], b: List[int]) -> List[int]:
 
 
 def _reduce(params: HQCParameters, a: List[int]) -> List[int]:
-    n_words = params.vec_n_size_64
-    out = [0] * n_words
-    for i in range(n_words):
-        r = a[i + n_words - 1] >> (params.param_n & 0x3F)
-        carry = (a[i + n_words] << (64 - (params.param_n & 0x3F))) & U64_MASK
-        out[i] = (a[i] ^ r ^ carry) & U64_MASK
+    poly = 0
+    for idx, word in enumerate(a):
+        poly |= (word & U64_MASK) << (64 * idx)
+
+    modulus = params.param_n
+    mask = (1 << modulus) - 1
+    while poly >> modulus:
+        overflow = poly >> modulus
+        poly &= mask
+        poly ^= overflow
+
+    out = []
+    for _ in range(params.vec_n_size_64):
+        out.append(poly & U64_MASK)
+        poly >>= 64
     rem = params.param_n % 64
-    mask = (1 << rem) - 1 if rem != 0 else U64_MASK
-    out[-1] &= mask
+    if rem != 0:
+        out[-1] &= (1 << rem) - 1
     return out
 
 
