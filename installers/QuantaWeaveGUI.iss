@@ -13,7 +13,8 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename=QuantaWeaveGUI-Setup
-OutputDir=dist
+OutputDir=..
+
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -21,7 +22,6 @@ SetupIconFile=assets\quantaweave.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
