@@ -212,8 +212,8 @@ full_mul_u64(const uint64_t lhs, const uint64_t rhs)
 static inline uint64_t
 top_63_bits(std::pair<uint64_t, uint64_t> v)
 {
-  constexpr uint64_t mask = (1ul << 62) - 1ul;
-  return ((v.first & mask) << 1) | (v.second >> 63);
+constexpr uint64_t mask = (1ull << 62) - 1ull;
+return ((v.first & mask) << 1) | (v.second >> 63);
 }
 
 // Routine for computing integral approximations of
