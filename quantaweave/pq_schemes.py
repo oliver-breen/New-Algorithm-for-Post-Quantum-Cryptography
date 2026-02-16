@@ -162,3 +162,102 @@ class HQCScheme(PQScheme):
     def verify(self, message: bytes, signature: Any, public_key: Any) -> bool:
         # HQC does not support signatures
         raise NotImplementedError("HQC does not support signatures.")
+<<<<<<< Updated upstream
+=======
+
+
+# Use the Falcon implementation (or mock/backend)
+from .falcon import FalconSig
+
+class FalconScheme(PQScheme):
+    def __init__(self, param_set: str = "Falcon-1024"):
+        self.falcon = FalconSig(param_set)
+
+    def generate_keypair(self) -> Tuple[Any, Any]:
+        return self.falcon.keygen()
+
+    def encapsulate(self, public_key: Any) -> Tuple[Any, Any]:
+        # Falcon does not support KEM
+        raise NotImplementedError("Falcon does not support KEM.")
+
+    def decapsulate(self, ciphertext: Any, secret_key: Any) -> Any:
+        # Falcon does not support KEM
+        raise NotImplementedError("Falcon does not support KEM.")
+
+    def sign(self, message: bytes, secret_key: Any) -> Any:
+        return self.falcon.sign(secret_key, message)
+
+    def verify(self, message: bytes, signature: Any, public_key: Any) -> bool:
+        return self.falcon.verify(public_key, message, signature)
+
+
+class UnifiedPQHybrid(PQScheme):
+    def __init__(self, kem_schemes: List[PQScheme], sig_schemes: Optional[List[PQScheme]] = None, secret_combiner=None, sig_threshold: Optional[int] = None):
+        self.kem_schemes = kem_schemes
+        self.sig_schemes = sig_schemes or []
+        self.secret_combiner = secret_combiner or (
+            lambda secrets: hashlib.sha3_256(b"".join(
+                s.encode() if isinstance(s, str) else s for s in secrets
+            )).digest()
+        )
+        self.sig_threshold = sig_threshold if sig_threshold is not None else len(self.sig_schemes)
+
+    def generate_keypair(self) -> Tuple[list, list]:
+        pub_keys = []
+        sec_keys = []
+        for scheme in self.kem_schemes + self.sig_schemes:
+            pk, sk = scheme.generate_keypair()
+            pub_keys.append(pk)
+            sec_keys.append(sk)
+        return pub_keys, sec_keys
+
+    def encapsulate(self, public_keys: list) -> Tuple[list, bytes]:
+        if len(public_keys) < len(self.kem_schemes):
+            raise ValueError(f"Expected at least {len(self.kem_schemes)} public keys, got {len(public_keys)}")
+            
+        ciphertexts = []
+        shared_secrets = []
+        for scheme, pk in zip(self.kem_schemes, public_keys[:len(self.kem_schemes)]):
+            # Ensure pk is bytes
+            if isinstance(pk, str):
+                pk = pk.encode()
+            ct, ss = scheme.encapsulate(pk)
+            ciphertexts.append(ct)
+            shared_secrets.append(ss)
+        combined_secret = self.secret_combiner(shared_secrets)
+        return ciphertexts, combined_secret
+
+    def decapsulate(self, ciphertexts: list, secret_keys: list) -> bytes:
+        if len(ciphertexts) < len(self.kem_schemes):
+            raise ValueError(f"Expected at least {len(self.kem_schemes)} ciphertexts, got {len(ciphertexts)}")
+        if len(secret_keys) < len(self.kem_schemes):
+            raise ValueError(f"Expected at least {len(self.kem_schemes)} secret keys, got {len(secret_keys)}")
+            
+        shared_secrets = []
+        for scheme, ct, sk in zip(self.kem_schemes, ciphertexts, secret_keys[:len(self.kem_schemes)]):
+            ss = scheme.decapsulate(ct, sk)
+            shared_secrets.append(ss)
+        combined_secret = self.secret_combiner(shared_secrets)
+        return combined_secret
+
+    def sign(self, message: bytes, secret_keys: list) -> list:
+        # Ensure message is bytes
+        if isinstance(message, str):
+            message = message.encode()
+        signatures = []
+        for scheme, sk in zip(self.sig_schemes, secret_keys[len(self.kem_schemes):]):
+            # Ensure sk is bytes
+            if isinstance(sk, str):
+                sk = sk.encode()
+            sig = scheme.sign(message, sk)
+            signatures.append(sig)
+        return signatures
+
+    def verify(self, message: bytes, signatures: list, public_keys: list) -> bool:
+        valid_count = 0
+        for scheme, sig, pk in zip(self.sig_schemes, signatures, public_keys[len(self.kem_schemes):]):
+            if scheme.verify(message, sig, pk):
+                valid_count += 1
+        return valid_count >= self.sig_threshold
+
+>>>>>>> Stashed changes
