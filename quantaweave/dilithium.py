@@ -62,7 +62,7 @@ class DilithiumCore:
                 # Using SHAKE-128 to generate polynomials
                 xof = hashlib.shake_128(rho + bytes([j, i])) # Note indices for A
                 # Rejection sampling (simplified)
-                poly = []
+                poly: list[int] = []
                 byte_stream = xof.digest(self.n * 4) 
                 idx = 0
                 while len(poly) < self.n:

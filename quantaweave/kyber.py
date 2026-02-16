@@ -44,7 +44,7 @@ class KyberCore:
                 # Need n coefficients < q. Rejection sampling is complex to implement efficiently in pure python perfectly matching spec.
                 # We will just generate enough bytes and take modulo q (not strictly uniform but close enough for demo).
                 # To be better:
-                poly = []
+                poly: list[int] = []
                 byte_stream = xof.digest(self.n * 2) # 2 bytes per coeff roughly
                 idx = 0
                 while len(poly) < self.n:

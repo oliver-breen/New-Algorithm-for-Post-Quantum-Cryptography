@@ -127,7 +127,7 @@ class FalconScheme(PQScheme):
 
 
 class UnifiedPQHybrid(PQScheme):
-    def __init__(self, kem_schemes: List[PQScheme], sig_schemes: Optional[List[PQScheme]] = None, secret_combiner=None, sig_threshold: int = None):
+    def __init__(self, kem_schemes: List[PQScheme], sig_schemes: Optional[List[PQScheme]] = None, secret_combiner=None, sig_threshold: Optional[int] = None):
         self.kem_schemes = kem_schemes
         self.sig_schemes = sig_schemes or []
         self.secret_combiner = secret_combiner or (
