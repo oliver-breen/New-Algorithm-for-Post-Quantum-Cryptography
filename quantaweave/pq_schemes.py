@@ -261,6 +261,9 @@ class UnifiedPQHybrid(PQScheme):
         return valid_count >= self.sig_threshold
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
