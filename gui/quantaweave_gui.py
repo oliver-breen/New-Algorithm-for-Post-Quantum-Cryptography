@@ -49,6 +49,20 @@ class UnifiedPQTab(QWidget):
         layout.addWidget(QLabel("KEM Recovered Secret")); layout.addWidget(self.kem_rec)
         layout.addWidget(kem_enc_btn); layout.addWidget(kem_dec_btn)
 
+        # Message Encryption (KEM)
+        self.kem_msg_in = QLineEdit(); self.kem_msg_in.setPlaceholderText("Message")
+        self.kem_msg_enc = QLineEdit(); self.kem_msg_enc.setPlaceholderText("Encrypted")
+        self.kem_msg_out = QLineEdit(); self.kem_msg_out.setPlaceholderText("Decrypted")
+        kem_msg_enc_btn = QPushButton("Encrypt Msg"); kem_msg_enc_btn.clicked.connect(self._on_kem_encrypt_msg)
+        kem_msg_dec_btn = QPushButton("Decrypt Msg"); kem_msg_dec_btn.clicked.connect(self._on_kem_decrypt_msg)
+        layout.addWidget(QLabel("Message Encryption (using Shared Secret)"))
+        layout.addWidget(self.kem_msg_in)
+        layout.addWidget(self.kem_msg_enc)
+        layout.addWidget(self.kem_msg_out)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(kem_msg_enc_btn); hlayout.addWidget(kem_msg_dec_btn)
+        layout.addLayout(hlayout)
+
         # Signature Keypair
         self.sig_pk = QLineEdit(); self.sig_sk = QLineEdit()
         sig_btn = QPushButton("Generate Sig Keypair"); sig_btn.clicked.connect(self._on_sig_keygen)
@@ -76,14 +90,37 @@ class UnifiedPQTab(QWidget):
         suite = self._suite()
         pk, sk = suite.kem_keypair()
         self.kem_pk.setText(str(pk)); self.kem_sk.setText(str(sk))
+
     def _on_kem_encaps(self):
         suite = self._suite()
         ct, ss = suite.kem_encapsulate(self.kem_pk.text())
         self.kem_ct.setText(str(ct)); self.kem_ss.setText(str(ss))
+
     def _on_kem_decaps(self):
         suite = self._suite()
         rec = suite.kem_decapsulate(self.kem_ct.text(), self.kem_sk.text())
         self.kem_rec.setText(str(rec))
+    
+    def _on_kem_encrypt_msg(self):
+        ss = self.kem_ss.text()
+        msg = self.kem_msg_in.text()
+        if not ss or not msg: return
+        # Simple XOR for demonstration
+        enc = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(msg, ss * (len(msg)//len(ss) + 1))])
+        self.kem_msg_enc.setText(base64.b64encode(enc.encode('latin1')).decode('ascii'))
+
+    def _on_kem_decrypt_msg(self):
+        ss = self.kem_rec.text()
+        if not ss: ss = self.kem_ss.text()
+        enc_b64 = self.kem_msg_enc.text()
+        if not ss or not enc_b64: return
+        try:
+            enc = base64.b64decode(enc_b64).decode('latin1')
+            dec = "".join([chr(ord(a) ^ ord(b)) for a, b in zip(enc, ss * (len(enc)//len(ss) + 1))])
+            self.kem_msg_out.setText(dec)
+        except:
+            self.kem_msg_out.setText("Error")
+
     def _on_sig_keygen(self):
         suite = self._suite()
         pk, sk = suite.sig_keypair()
@@ -179,10 +216,16 @@ class LweTab(QWidget):
         self.message_text.setPlaceholderText("Message (UTF-8)")
         self.ciphertext_text = QPlainTextEdit()
         self.ciphertext_text.setPlaceholderText("Ciphertext (JSON)")
+        self.decrypted_text = QPlainTextEdit()
+        self.decrypted_text.setPlaceholderText("Decrypted Message")
+        self.decrypted_text.setReadOnly(True)
+        
         crypto_layout.addWidget(QLabel("Message"))
         crypto_layout.addWidget(self.message_text)
         crypto_layout.addWidget(QLabel("Ciphertext"))
         crypto_layout.addWidget(self.ciphertext_text)
+        crypto_layout.addWidget(QLabel("Decrypted Output"))
+        crypto_layout.addWidget(self.decrypted_text)
 
         btn_row = QHBoxLayout()
         self.encrypt_btn = QPushButton("Encrypt")
@@ -222,7 +265,7 @@ class LweTab(QWidget):
             ciphertext = json.loads(self.ciphertext_text.toPlainText())
             private_key = json.loads(self.private_key_text.toPlainText())
             plaintext = QuantaWeave.decrypt(ciphertext, private_key)
-            self.message_text.setPlainText(plaintext.decode("utf-8", errors="replace"))
+            self.decrypted_text.setPlainText(plaintext.decode("utf-8", errors="replace"))
         except Exception as exc:
             _show_error(self, str(exc))
 
@@ -275,6 +318,28 @@ class HqcTab(QWidget):
         btn_row.addWidget(self.encaps_btn)
         btn_row.addWidget(self.decaps_btn)
         kem_layout.addRow(btn_row)
+        
+        # Message Encryption using Shared Secret
+        self.kem_msg_in = QLineEdit()
+        self.kem_msg_in.setPlaceholderText("Message to encrypt with shared secret")
+        self.kem_msg_enc = QLineEdit()
+        self.kem_msg_enc.setReadOnly(True)
+        self.kem_msg_out = QLineEdit()
+        self.kem_msg_out.setReadOnly(True)
+        
+        kem_msg_btn_row = QHBoxLayout()
+        self.kem_encrypt_btn = QPushButton("Encrypt Message")
+        self.kem_encrypt_btn.clicked.connect(self._on_kem_encrypt_msg)
+        self.kem_decrypt_btn = QPushButton("Decrypt Message")
+        self.kem_decrypt_btn.clicked.connect(self._on_kem_decrypt_msg)
+        kem_msg_btn_row.addWidget(self.kem_encrypt_btn)
+        kem_msg_btn_row.addWidget(self.kem_decrypt_btn)
+        
+        kem_layout.addRow("Message", self.kem_msg_in)
+        kem_layout.addRow("Encrypted Message", self.kem_msg_enc)
+        kem_layout.addRow("Decrypted Message", self.kem_msg_out)
+        kem_layout.addRow(kem_msg_btn_row)
+        
         kem_box.setLayout(kem_layout)
 
         layout.addLayout(controls)
@@ -303,14 +368,47 @@ class HqcTab(QWidget):
         except Exception as exc:
             _show_error(self, str(exc))
 
-    def _on_decaps(self) -> None:
+    def _on_kem_encrypt_msg(self) -> None:
         try:
-            pqc = QuantaWeave(self.level_combo.currentText())
+            ss_hex = self.shared_secret_text.text()
+            if not ss_hex:
+                _show_error(self, "No shared secret available")
+                return
+            # Use simple XOR with repeated key for demonstration
+            # In production this should be AES-GCM or similar
             encoding = self.encoding_combo.currentText()
-            ciphertext = _decode_bytes(self.ciphertext_text.toPlainText(), encoding)
-            private_key = _decode_bytes(self.private_key_text.toPlainText(), encoding)
-            recovered = pqc.hqc_decapsulate(ciphertext, private_key)
-            self.recovered_secret_text.setText(_encode_bytes(recovered, encoding))
+            ss_bytes = _decode_bytes(ss_hex, encoding)
+            msg_bytes = self.kem_msg_in.text().encode("utf-8")
+            
+            enc_bytes = bytearray()
+            for i, b in enumerate(msg_bytes):
+                enc_bytes.append(b ^ ss_bytes[i % len(ss_bytes)])
+            
+            self.kem_msg_enc.setText(_encode_bytes(bytes(enc_bytes), encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_kem_decrypt_msg(self) -> None:
+        try:
+            ss_hex = self.recovered_secret_text.text()
+            if not ss_hex:
+                # If recovered is empty, try shared secret (for testing)
+                ss_hex = self.shared_secret_text.text()
+                
+            if not ss_hex:
+                _show_error(self, "No shared/recovered secret available")
+                return
+
+            encoding = self.encoding_combo.currentText()
+            ss_bytes = _decode_bytes(ss_hex, encoding)
+            enc_str = self.kem_msg_enc.text()
+            enc_bytes = _decode_bytes(enc_str, encoding)
+            
+            dec_bytes = bytearray()
+            for i, b in enumerate(enc_bytes):
+                dec_bytes.append(b ^ ss_bytes[i % len(ss_bytes)])
+            
+            self.kem_msg_out.setText(dec_bytes.decode("utf-8", errors="replace"))
         except Exception as exc:
             _show_error(self, str(exc))
 
@@ -395,6 +493,10 @@ class FalconTab(QWidget):
             secret_key = _decode_bytes(self.secret_key_text.toPlainText(), encoding)
             message = self.message_text.toPlainText().encode("utf-8")
             signature = falcon.sign(secret_key, message)
+            
+            if all(b == 0 for b in signature):
+                _show_error(self, "Warning: Generated signature is all zeros. Implementation may be incomplete.")
+                
             self.signature_text.setPlainText(_encode_bytes(signature, encoding))
         except Exception as exc:
             _show_error(self, str(exc))
