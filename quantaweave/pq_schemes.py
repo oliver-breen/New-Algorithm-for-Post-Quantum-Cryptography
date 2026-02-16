@@ -159,13 +159,6 @@ class HQCScheme(PQScheme):
         # HQC does not support signatures
         raise NotImplementedError("HQC does not support signatures.")
 
-    def verify(self, message: bytes, signature: Any, public_key: Any) -> bool:
-        # HQC does not support signatures
-        raise NotImplementedError("HQC does not support signatures.")
-<<<<<<< Updated upstream
-=======
-
-
 # Use the Falcon implementation (or mock/backend)
 from .falcon import FalconSig
 
@@ -260,16 +253,4 @@ class UnifiedPQHybrid(PQScheme):
                 valid_count += 1
         return valid_count >= self.sig_threshold
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+    # ...existing code...
