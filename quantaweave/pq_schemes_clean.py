@@ -1,16 +1,6 @@
-
 from typing import Optional, List, Tuple, Any
 import hashlib
 from .pq_unified_interface import PQScheme
-
-
-from typing import Tuple, Any
-# Hybrid/composite PQ algorithm class
-from .pq_unified_interface import PQScheme
-from .pq_unified_interface import PQScheme
-
-
-# Import DummyKEM from pqcrypto_suite for placeholder logic
 
 # Use the real Kyber implementation
 from kyber_dilithium_hqc import kyber_keygen, kyber_encaps, kyber_decaps
@@ -197,4 +187,3 @@ class UnifiedPQHybrid(PQScheme):
             if scheme.verify(message, sig, pk):
                 valid_count += 1
         return valid_count >= self.sig_threshold
-
