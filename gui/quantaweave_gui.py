@@ -1,3 +1,17 @@
+import os
+import sys
+
+if os.name == 'nt':
+    try:
+        # Add current directory and quantaweave subdirectory to DLL search path
+        os.add_dll_directory(os.getcwd())
+        # Also try adding the directory where this script is, if different
+        os.add_dll_directory(os.path.dirname(os.path.abspath(__file__)))
+        # And the package directory
+        os.add_dll_directory(os.path.join(os.getcwd(), 'quantaweave'))
+    except AttributeError:
+        pass
+
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -15,6 +29,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from pqcrypto.pqcrypto_suite import PQCryptoSuite
+
+from quantaweave import QuantaWeave, FalconSig
+from quantaweave.woven_algorithm import QuantaWeaveAlgorithm
 
 class UnifiedPQTab(QWidget):
     def __init__(self):
@@ -157,6 +174,7 @@ from PyQt6.QtWidgets import (
 )
 
 from quantaweave import QuantaWeave, FalconSig
+from quantaweave.woven_algorithm import QuantaWeaveAlgorithm
 
 
 def _encode_bytes(data: bytes, encoding: str) -> str:
@@ -368,6 +386,17 @@ class HqcTab(QWidget):
         except Exception as exc:
             _show_error(self, str(exc))
 
+    def _on_decaps(self) -> None:
+        try:
+            pqc = QuantaWeave(self.level_combo.currentText())
+            encoding = self.encoding_combo.currentText()
+            ciphertext = _decode_bytes(self.ciphertext_text.toPlainText(), encoding)
+            private_key = _decode_bytes(self.private_key_text.toPlainText(), encoding)
+            shared_secret = pqc.hqc_decapsulate(ciphertext, private_key)
+            self.recovered_secret_text.setText(_encode_bytes(shared_secret, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
     def _on_kem_encrypt_msg(self) -> None:
         try:
             ss_hex = self.shared_secret_text.text()
@@ -514,6 +543,142 @@ class FalconTab(QWidget):
             _show_error(self, str(exc))
 
 
+class WovenTab(QWidget):
+    def __init__(self) -> None:
+        super().__init__()
+        self.algo = QuantaWeaveAlgorithm()
+        self._setup_ui()
+
+    def _setup_ui(self) -> None:
+        layout = QVBoxLayout()
+        
+        # Info
+        layout.addWidget(QLabel("<b>Hybrid QuantaWeave Algorithm</b><br>Combines Kyber-768 + HQC-128 (KEM) and Dilithium-3 + Falcon-1024 (Signature)"))
+
+        # Controls
+        controls = QHBoxLayout()
+        self.encoding_combo = QComboBox()
+        self.encoding_combo.addItems(["base64", "hex"]) # Default to base64 for large blobs
+        controls.addWidget(QLabel("Encoding"))
+        controls.addWidget(self.encoding_combo)
+        controls.addStretch(1)
+        layout.addLayout(controls)
+
+        # Keypair
+        key_box = QGroupBox("Unified Keypair")
+        key_layout = QFormLayout()
+        self.pk_text = QPlainTextEdit()
+        self.sk_text = QPlainTextEdit()
+        self.pk_text.setMaximumHeight(60)
+        self.sk_text.setMaximumHeight(60)
+        key_layout.addRow("Public Key (Blob)", self.pk_text)
+        key_layout.addRow("Secret Key (Blob)", self.sk_text)
+        
+        keygen_btn = QPushButton("Generate Hybrid Keypair")
+        keygen_btn.clicked.connect(self._on_keygen)
+        key_layout.addRow(keygen_btn)
+        key_box.setLayout(key_layout)
+        layout.addWidget(key_box)
+
+        # Operations Tabs (KEM vs Sign)
+        ops_tabs = QTabWidget()
+        
+        # KEM Tab
+        kem_widget = QWidget()
+        kem_layout = QFormLayout()
+        
+        self.kem_ct = QPlainTextEdit(); self.kem_ct.setMaximumHeight(50)
+        self.kem_ss = QLineEdit(); self.kem_ss.setReadOnly(True)
+        self.kem_rec = QLineEdit(); self.kem_rec.setReadOnly(True)
+        
+        encaps_btn = QPushButton("Encapsulate (using PK)")
+        encaps_btn.clicked.connect(self._on_encaps)
+        decaps_btn = QPushButton("Decapsulate (using CT + SK)")
+        decaps_btn.clicked.connect(self._on_decaps)
+        
+        kem_layout.addRow("Ciphertext", self.kem_ct)
+        kem_layout.addRow(encaps_btn)
+        kem_layout.addRow("Shared Secret", self.kem_ss)
+        kem_layout.addRow("Recovered Secret", self.kem_rec)
+        kem_layout.addRow(decaps_btn)
+        kem_widget.setLayout(kem_layout)
+        ops_tabs.addTab(kem_widget, "Hybrid KEM")
+
+        # Sign Tab
+        sign_widget = QWidget()
+        sign_layout = QFormLayout()
+        
+        self.msg_in = QLineEdit(); self.msg_in.setPlaceholderText("Message to sign")
+        self.sig_out = QPlainTextEdit(); self.sig_out.setMaximumHeight(50)
+        self.verify_res = QLineEdit(); self.verify_res.setReadOnly(True)
+        
+        sign_btn = QPushButton("Sign (using SK)")
+        sign_btn.clicked.connect(self._on_sign)
+        verify_btn = QPushButton("Verify (using Sig + PK)")
+        verify_btn.clicked.connect(self._on_verify)
+        
+        sign_layout.addRow("Message", self.msg_in)
+        sign_layout.addRow("Signature", self.sig_out)
+        sign_layout.addRow(sign_btn)
+        sign_layout.addRow("Verification", self.verify_res)
+        sign_layout.addRow(verify_btn)
+        sign_widget.setLayout(sign_layout)
+        ops_tabs.addTab(sign_widget, "Hybrid Signature")
+
+        layout.addWidget(ops_tabs)
+        self.setLayout(layout)
+
+    def _on_keygen(self) -> None:
+        try:
+            encoding = self.encoding_combo.currentText()
+            pk, sk = self.algo.generate_keypair()
+            self.pk_text.setPlainText(_encode_bytes(pk, encoding))
+            self.sk_text.setPlainText(_encode_bytes(sk, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_encaps(self) -> None:
+        try:
+            encoding = self.encoding_combo.currentText()
+            pk = _decode_bytes(self.pk_text.toPlainText(), encoding)
+            ct, ss = self.algo.encapsulate(pk)
+            self.kem_ct.setPlainText(_encode_bytes(ct, encoding))
+            self.kem_ss.setText(_encode_bytes(ss, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_decaps(self) -> None:
+        try:
+            encoding = self.encoding_combo.currentText()
+            ct = _decode_bytes(self.kem_ct.toPlainText(), encoding)
+            sk = _decode_bytes(self.sk_text.toPlainText(), encoding)
+            ss = self.algo.decapsulate(ct, sk)
+            self.kem_rec.setText(_encode_bytes(ss, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+            
+    def _on_sign(self) -> None:
+        try:
+            encoding = self.encoding_combo.currentText()
+            msg = self.msg_in.text().encode("utf-8")
+            sk = _decode_bytes(self.sk_text.toPlainText(), encoding)
+            sig = self.algo.sign(msg, sk)
+            self.sig_out.setPlainText(_encode_bytes(sig, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_verify(self) -> None:
+        try:
+            encoding = self.encoding_combo.currentText()
+            msg = self.msg_in.text().encode("utf-8")
+            sig = _decode_bytes(self.sig_out.toPlainText(), encoding)
+            pk = _decode_bytes(self.pk_text.toPlainText(), encoding)
+            valid = self.algo.verify(msg, sig, pk)
+            self.verify_res.setText("Valid" if valid else "Invalid")
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+
 class QuantaWeaveWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -521,6 +686,7 @@ class QuantaWeaveWindow(QMainWindow):
         self.resize(900, 700)
 
         tabs = QTabWidget()
+        tabs.addTab(WovenTab(), "Woven Algorithm")
         tabs.addTab(LweTab(), "LWE")
         tabs.addTab(HqcTab(), "HQC KEM")
         tabs.addTab(FalconTab(), "Falcon")
