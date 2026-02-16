@@ -5,16 +5,16 @@ from setuptools.command.build_ext import build_ext as _build_ext
 
 import pybind11
 
+# Initialize from environment variables
+gmp_include = os.environ.get("GMP_INCLUDE_DIR")
+gmp_lib = os.environ.get("GMP_LIB_DIR")
 
-# Check for local GMP directories if environment variables are not set
+# Fallback to local directories if environment variables are not set
 if not gmp_include and os.path.exists("gmp_include"):
     gmp_include = os.path.abspath("gmp_include")
 
 if not gmp_lib and os.path.exists("gmp_libs"):
     gmp_lib = os.path.abspath("gmp_libs")
-
-gmp_include = os.environ.get("GMP_INCLUDE_DIR")
-gmp_lib = os.environ.get("GMP_LIB_DIR")
 
 
 # Falcon build config
