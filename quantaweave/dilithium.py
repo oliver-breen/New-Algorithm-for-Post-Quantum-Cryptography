@@ -9,6 +9,8 @@ import os
 import hashlib
 from typing import List, Tuple, Dict, Any, Optional
 from .math_utils import PolynomialRing, Sampler
+from pqcrypto.dsa import dilithium3
+from typing import Tuple
 
 class DilithiumCore:
     """
@@ -146,6 +148,7 @@ class DilithiumCore:
         tr = hashlib.shake_256(pickle.dumps(pk)).digest(32) # Simple serialization
         sk = {'rho': rho, 'K': K, 'tr': tr, 's1': s1, 's2': s2, 't': t} # storing t instead of t0 for simplicity
         
+        print(f"[DEBUG Dilithium] keypair: pk={pk}, sk={sk}")
         return pk, sk
 
     def sign(self, sk: Dict, message: bytes) -> bytes:
