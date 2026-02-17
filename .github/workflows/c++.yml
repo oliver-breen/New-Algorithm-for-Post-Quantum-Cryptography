@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cppcheck build-essential cmake
+          sudo apt-get install -y cppcheck build-essential cmake libgmp-dev
 
       - name: Run cppcheck on C sources
         run: |
@@ -28,26 +28,27 @@ jobs:
           cppcheck --enable=all --inconclusive --std=c++17 --language=c++ --error-exitcode=1 \
             -I./vendor/hqc/include -I./vendor/hqc/packaging/utils/helpers -I. .
 
+      - name: Prepare build directory
+        run: mkdir -p build/github-testing
+
       - name: Build (Makefile, CMake, or fallback compilation)
         run: |
+          BUILD_DIR=build/github-testing
           if [ -f Makefile ]; then
             echo "Running make..."
-            make -j$(nproc)
+            make -j$(nproc) BUILD_DIR=$BUILD_DIR
           elif [ -f CMakeLists.txt ]; then
             echo "Running cmake..."
-            mkdir -p build
-            cd build
-            cmake ..
+            cd $BUILD_DIR
+            cmake ../..
             make -j$(nproc)
-            cd ..
+            cd ../..
           else
             echo "No Makefile or CMakeLists.txt found, compiling all C files as a fallback..."
-            SRC_FILES=$(find . -type f \( -name '*.c' \))
+            SRC_FILES=$(find . -type f -name '*.c')
             if [ -n "$SRC_FILES" ]; then
-              mkdir -p build
-              set -e
               for SRC in $SRC_FILES; do
-                OUT="build/$(basename "${SRC%.*}").o"
+                OUT="$BUILD_DIR/$(basename "${SRC%.*}").o"
                 gcc -c "$SRC" -o "$OUT" || { echo "Failed to compile $SRC"; exit 1; }
               done
               echo "All C source files compiled."
@@ -55,6 +56,12 @@ jobs:
               echo "No C source files found, skipping build."
             fi
           fi
+
+      - name: Upload built files (download from Actions UI after job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-testing-build
+          path: build/github-testing/
 
       - name: List Build Artifacts on Failure
         if: failure()
