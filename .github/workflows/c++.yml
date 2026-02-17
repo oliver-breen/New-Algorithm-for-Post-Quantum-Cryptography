@@ -1,4 +1,4 @@
-nname: C Lint and Build
+name: C Lint and Build
 
 on:
   push:
@@ -25,5 +25,13 @@ jobs:
           if [ -f Makefile ]; then
             make
           else
-            echo "No Makefile found, skip build step"
+            echo "No Makefile found, searching for C/C++ files and building DLL..."
+            SRC_FILES=$(find . -type f \( -name '*.c' -o -name '*.cpp' \))
+            if [ -n "$SRC_FILES" ]; then
+              mkdir -p build
+              gcc -shared -o build/output.dll $SRC_FILES
+              echo "DLL built at build/output.dll"
+            else
+              echo "No C/C++ source files found, skipping build."
+            fi
           fi
