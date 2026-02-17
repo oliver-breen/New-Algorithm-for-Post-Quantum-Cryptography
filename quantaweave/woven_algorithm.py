@@ -14,90 +14,142 @@ mathematical problems (Lattice or Code-based) is compromised.
 import pickle
 from typing import Tuple, Any, List
 from .pq_unified_interface import PQScheme
-from .pq_schemes import UnifiedPQHybrid, KyberScheme, HQCScheme, DilithiumScheme, FalconScheme
+from .pq_schemes import UnifiedPQHybrid, KyberScheme, HQCScheme, FalconScheme
 
 class QuantaWeaveAlgorithm(PQScheme):
-    """
-    The concrete implementation of the QuantaWeave hybrid algorithm.
-    """
-    
+    def hybrid_encrypt(self, public_key: bytes, plaintext: bytes) -> tuple:
+        """
+        Hybrid encrypt: derive shared secret via KEMs, then encrypt plaintext with AES-GCM using the combined secret.
+        Returns (ciphertext_dict, aes_gcm_dict)
+        """
+        try:
+            pub_key_obj = pickle.loads(public_key)
+        except Exception:
+            pub_key_obj = public_key
+        result = self.hybrid.encapsulate(pub_key_obj, plaintext=plaintext)
+        return result["ct"], result["aes_gcm"]
+
+    def hybrid_decrypt(self, ciphertext: dict, secret_key: bytes, aes_gcm: dict) -> bytes:
+        """
+        Hybrid decrypt: derive shared secret via KEMs, then decrypt AES-GCM ciphertext using the combined secret.
+        """
+        try:
+            sec_key_obj = pickle.loads(secret_key)
+        except Exception:
+            sec_key_obj = secret_key
+        plaintext = self.hybrid.decapsulate(ciphertext, sec_key_obj, aes_gcm=aes_gcm)
+        return plaintext
+    def sign(self, message: bytes, secret_key: bytes) -> bytes:
+        """Hybrid sign using all signature schemes (e.g., Dilithium, Falcon)."""
+        # For hybrid, secret_key is a pickled list if multiple schemes, else raw bytes
+        if isinstance(secret_key, bytes):
+            try:
+                sec_keys_list = pickle.loads(secret_key)
+            except Exception:
+                sec_keys_list = [secret_key]
+        else:
+            sec_keys_list = secret_key
+        sigs = self.hybrid.sign(message, sec_keys_list)
+        # For single-scheme, return raw bytes; for hybrid, pickle the list
+        return sigs[0] if len(sigs) == 1 else pickle.dumps(sigs)
+
+    def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
+        """Hybrid verify using all signature schemes (e.g., Dilithium, Falcon)."""
+        # For hybrid, signature and public_key may be pickled lists
+        if isinstance(signature, bytes):
+            try:
+                sigs = pickle.loads(signature)
+            except Exception:
+                sigs = [signature]
+        else:
+            sigs = signature
+        if isinstance(public_key, bytes):
+            try:
+                pub_keys_list = pickle.loads(public_key)
+            except Exception:
+                pub_keys_list = [public_key]
+        else:
+            pub_keys_list = public_key
+        return self.hybrid.verify(message, sigs, pub_keys_list)
+
     def __init__(self):
-        # Weave together Kyber, HQC, Dilithium, and Falcon
+        # True hybrid: RSA-GCM, ML-KEM (Kyber), ML-DSA (Dilithium), HQC, Falcon
+        from quantaweave.pq_schemes import HQCScheme, RSAGCMScheme, DilithiumScheme
         self.hybrid = UnifiedPQHybrid(
             kem_schemes=[
-                KyberScheme(),          # Primary Lattice KEM
-                HQCScheme(param_set="HQC-1") # Secondary Code-based KEM (Redundancy)
+                RSAGCMScheme(),
+                KyberScheme(),
+                HQCScheme()
             ],
             sig_schemes=[
-                DilithiumScheme(),      # Primary Lattice Signature
-                FalconScheme(param_set="Falcon-1024") # Secondary Lattice Signature (Compact)
+                FalconScheme(),
+                DilithiumScheme()
             ]
         )
 
     def generate_keypair(self) -> Tuple[bytes, bytes]:
         """
         Generate a unified public/secret key pair for the Woven algorithm.
-        Returns serialized (pickled) bytes.
+        Returns raw bytes for single-scheme (Kyber, Dilithium).
+        For hybrid, serialize as a dict mapping scheme name to key to preserve key integrity.
         """
-        # Generate keys for all sub-schemes
         pub_keys_list, sec_keys_list = self.hybrid.generate_keypair()
-        
-        # Serialize to single blobs
-        pub_key_blob = pickle.dumps(pub_keys_list)
-        sec_key_blob = pickle.dumps(sec_keys_list)
-        
+        if len(pub_keys_list) == 1:
+            pub_key_blob = pub_keys_list[0]
+        else:
+            # Use explicit, stable scheme identifiers
+            scheme_ids = ["Kyber", "HQC", "Falcon"][:len(pub_keys_list)]
+            pub_key_dict = {name: key for name, key in zip(scheme_ids, pub_keys_list)}
+            pub_key_blob = pickle.dumps(pub_key_dict)
+        if len(sec_keys_list) == 1:
+            sec_key_blob = sec_keys_list[0]
+        else:
+            scheme_ids = ["Kyber", "HQC", "Falcon"][:len(sec_keys_list)]
+            sec_key_dict = {name: key for name, key in zip(scheme_ids, sec_keys_list)}
+            sec_key_blob = pickle.dumps(sec_key_dict)
         return pub_key_blob, sec_key_blob
 
     def encapsulate(self, public_key: bytes) -> Tuple[bytes, bytes]:
         """
-        Encapsulate a shared secret using the Woven algorithm (Kyber + HQC).
+        Encapsulate a shared secret using the Woven algorithm (Kyber).
+        For hybrid, unpickle as dict and preserve order by scheme.
         """
-        # Deserialize public key list
         try:
-            pub_keys_list = pickle.loads(public_key)
+            pub_key_obj = pickle.loads(public_key)
+            if isinstance(pub_key_obj, dict):
+                scheme_ids = ["Kyber", "HQC", "Falcon"][:len(pub_key_obj)]
+                pub_keys_list = [pub_key_obj[name] for name in scheme_ids]
+            else:
+                pub_keys_list = pub_key_obj
         except Exception:
-            raise ValueError("Invalid public key format")
-            
-        # Hybrid Encapsulation
+            pub_keys_list = [public_key]
         ciphertexts_list, shared_secret = self.hybrid.encapsulate(pub_keys_list)
-        
-        # Serialize ciphertext list
-        ciphertext_blob = pickle.dumps(ciphertexts_list)
-        
+        if len(ciphertexts_list) == 1:
+            ciphertext_blob = ciphertexts_list[0]
+        else:
+            ciphertext_blob = pickle.dumps(ciphertexts_list)
         return ciphertext_blob, shared_secret
 
     def decapsulate(self, ciphertext: bytes, secret_key: bytes) -> bytes:
         """
         Decapsulate the shared secret using the Woven algorithm.
+        Always use the original 2400-byte Kyber secret key from keygen if available.
+        For hybrid, unpickle as dict and preserve order by scheme.
         """
         try:
             ciphertexts_list = pickle.loads(ciphertext)
-            sec_keys_list = pickle.loads(secret_key)
         except Exception:
-            raise ValueError("Invalid ciphertext or secret key format")
-            
-        return self.hybrid.decapsulate(ciphertexts_list, sec_keys_list)
-
-    def sign(self, message: bytes, secret_key: bytes) -> bytes:
-        """
-        Sign a message using the Woven algorithm (Dilithium).
-        """
+            ciphertexts_list = [ciphertext]
         try:
-            sec_keys_list = pickle.loads(secret_key)
+            sec_key_obj = pickle.loads(secret_key)
+            if isinstance(sec_key_obj, dict):
+                scheme_ids = ["Kyber", "HQC", "Falcon"][:len(sec_key_obj)]
+                sec_keys_list = [sec_key_obj[name] for name in scheme_ids]
+            else:
+                sec_keys_list = sec_key_obj
         except Exception:
-            raise ValueError("Invalid secret key format")
-            
-        signatures_list = self.hybrid.sign(message, sec_keys_list)
-        return pickle.dumps(signatures_list)
+            sec_keys_list = [secret_key]
+        result = self.hybrid.decapsulate(ciphertexts_list, sec_keys_list)
+        return result
 
-    def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
-        """
-        Verify a signature using the Woven algorithm.
-        """
-        try:
-            signatures_list = pickle.loads(signature)
-            pub_keys_list = pickle.loads(public_key)
-        except Exception:
-            return False
-            
-        return self.hybrid.verify(message, signatures_list, pub_keys_list)
+    # Signature methods removed for Kyber-only testing

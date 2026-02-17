@@ -9,6 +9,8 @@ import os
 import hashlib
 from typing import List, Tuple, Dict, Any, Optional
 from .math_utils import PolynomialRing, Sampler
+from pqcrypto.dsa import dilithium3
+from typing import Tuple
 
 class DilithiumCore:
     """
@@ -123,6 +125,9 @@ class DilithiumCore:
         return [self.ring.add(p1, p2) for p1, p2 in zip(v1, v2)]
 
     def keypair(self) -> Tuple[Dict, Dict]:
+        pk, sk = self._keypair()
+        print(f"[DEBUG Dilithium] keypair: pk={pk}, sk={sk}")
+        return pk, sk
         """
         Generate public and secret keys.
         """
