@@ -14,16 +14,63 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cppcheck build-essential
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck build-essential cmake libgmp-dev
 
-      - name: Run cppcheck
+      - name: Run cppcheck on C sources
         run: |
-          cppcheck --enable=all --inconclusive --std=c99 --language=c --error-exitcode=1 .
-      
-      - name: Build (example with make)
+          cppcheck --enable=all --inconclusive --std=c99 --language=c --error-exitcode=1 \
+            -I./vendor/hqc/include -I./vendor/hqc/packaging/utils/helpers -I. .
+
+      - name: Run cppcheck on C++ sources
         run: |
+          cppcheck --enable=all --inconclusive --std=c++17 --language=c++ --error-exitcode=1 \
+            -I./vendor/hqc/include -I./vendor/hqc/packaging/utils/helpers -I. .
+
+      - name: Prepare build directory
+        run: mkdir -p build/github-testing
+
+      - name: Build (Makefile, CMake, or fallback compilation)
+        run: |
+          sudo BUILD_DIR=build/github-testing
           if [ -f Makefile ]; then
-            make
+            echo "Running make..."
+            sudo make -j$(nproc) BUILD_DIR=$BUILD_DIR
+          elif [ -f CMakeLists.txt ]; then
+            echo "Running cmake..."
+            sudo cd $BUILD_DIR
+            cmake ../..
+            make -j$(nproc)
+            cd ../..
           else
-            echo "No Makefile found, skip build step"
+            echo "No Makefile or CMakeLists.txt found, compiling all C files as a fallback..."
+            SRC_FILES=$(find . -type f -name '*.c')
+            if [ -n "$SRC_FILES" ]; then
+              for SRC in $SRC_FILES; do
+                OUT="$BUILD_DIR/$(basename "${SRC%.*}").o"
+                gcc -c "$SRC" -o "$OUT" || { echo "Failed to compile $SRC"; exit 1; }
+              done
+              echo "All C source files compiled."
+            else
+              echo "No C source files found, skipping build."
+            fi
           fi
+
+      - name: Upload built files (download from Actions UI after job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-testing-build
+          path: build/github-testing/
+
+      - name: List Build Artifacts on Failure
+        if: failure()
+        run: |
+          echo "Listing build directory contents for diagnostics:"
+          ls -lR build || true
+
+      - name: Show Last 100 Lines of Build Log (if exists/failed)
+        if: failure()
+        run: |
+          echo "==== BUILD LOG OUTPUT ===="
+          tail -n 100 build/*.log || echo "No build logs found."

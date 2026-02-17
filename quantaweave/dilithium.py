@@ -125,9 +125,6 @@ class DilithiumCore:
         return [self.ring.add(p1, p2) for p1, p2 in zip(v1, v2)]
 
     def keypair(self) -> Tuple[Dict, Dict]:
-        pk, sk = self._keypair()
-        print(f"[DEBUG Dilithium] keypair: pk={pk}, sk={sk}")
-        return pk, sk
         """
         Generate public and secret keys.
         """
@@ -151,6 +148,7 @@ class DilithiumCore:
         tr = hashlib.shake_256(pickle.dumps(pk)).digest(32) # Simple serialization
         sk = {'rho': rho, 'K': K, 'tr': tr, 's1': s1, 's2': s2, 't': t} # storing t instead of t0 for simplicity
         
+        print(f"[DEBUG Dilithium] keypair: pk={pk}, sk={sk}")
         return pk, sk
 
     def sign(self, sk: Dict, message: bytes) -> bytes:
