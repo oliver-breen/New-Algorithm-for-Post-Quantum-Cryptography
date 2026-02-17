@@ -1,0 +1,20 @@
+name: Inspect Code
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: JetBrains ReSharper Inspect Code
+        uses: JetBrains/ReSharper-InspectCode@v0.11
+        with:
+          solution: '**/*.sln'
+          severity: SUGGESTION
