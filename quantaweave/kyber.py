@@ -9,6 +9,7 @@ import os
 import hashlib
 from typing import List, Tuple, Dict, Any
 from .math_utils import PolynomialRing, Sampler, compress, decompress
+from pqcrypto.kem import kyber_768
 
 class KyberCore:
     """
@@ -89,27 +90,11 @@ class KyberCore:
             acc = self.ring.add(acc, prod)
         return acc
 
-    def keypair(self) -> Tuple[Dict, Dict]:
+    def keypair(self) -> Tuple[bytes, bytes]:
         """
-        Generate public and secret keys.
+        Generate Kyber-768 public and secret keys using pqcrypto.
         """
-        # 1. Generate random seed for matrix A
-        public_seed = os.urandom(32)
-        # 2. Generate matrix A from seed
-        A = self._generate_matrix(public_seed)
-        
-        # 3. Sample secret vector s and error vector e
-        s = self._sample_vector(self.eta1)
-        e = self._sample_vector(self.eta1)
-        
-        # 4. Compute t = A * s + e
-        As = self._matrix_vec_mul(A, s)
-        t = self._poly_vec_add(As, e)
-        
-        # Public key: (t, public_seed)
-        # Secret key: s
-        pk = {'t': t, 'seed': public_seed}
-        sk = {'s': s, 'pk': pk} # Store pk in sk for re-encryption check if needed
+        pk, sk = kyber_768.generate_keypair()
         return pk, sk
 
     def _encode_message(self, message: bytes) -> List[int]:
@@ -144,6 +129,7 @@ class KyberCore:
         return bytes(msg_bytes)
 
     def encrypt(self, pk: Dict, message: bytes, coins: bytes) -> Dict:
+        print(f"[DEBUG Kyber] encrypt: pk={pk}, message={message}, coins={coins}")
         """
         PKE Encryption (part of KEM).
         m: 32 bytes message
@@ -195,9 +181,12 @@ class KyberCore:
         u_compressed = [ [compress(c, self.q, self.du) for c in poly] for poly in u ]
         v_compressed = [compress(c, self.q, self.dv) for c in v]
         
-        return {'u': u_compressed, 'v': v_compressed}
+        ct = {'u': u_compressed, 'v': v_compressed}
+        print(f"[DEBUG Kyber] encrypt output: ct={ct}")
+        return ct
 
     def decrypt(self, sk: Dict, ciphertext: Dict) -> bytes:
+        print(f"[DEBUG Kyber] decrypt: sk={sk}, ct={ciphertext}")
         """
         PKE Decryption.
         """
@@ -214,7 +203,9 @@ class KyberCore:
         su = self._vec_dot(s, u)
         m_noisy = self.ring.subtract(v, su)
         
-        return self._decode_message(m_noisy)
+        m_dec = self._decode_message(m_noisy)
+        print(f"[DEBUG Kyber] decrypt output: m={m_dec}")
+        return m_dec
 
     def encaps(self, pk: Dict) -> Tuple[Dict, bytes]:
         """

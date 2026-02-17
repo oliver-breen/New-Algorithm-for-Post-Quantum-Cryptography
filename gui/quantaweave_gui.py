@@ -1,20 +1,28 @@
+
 from PyQt6.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QPlainTextEdit,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
+    QApplication, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit, QTabWidget, QVBoxLayout, QWidget
 )
+import base64
+import json
 from pqcrypto.pqcrypto_suite import PQCryptoSuite
+from quantaweave import QuantaWeave
+
+# Dummy HqcTab and UnifiedPQTab for GUI registration if not already defined
+class HqcTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("HQC KEM Tab (placeholder)"))
+        self.setLayout(layout)
+
+class UnifiedPQTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Unified PQ Tab (placeholder)"))
+        self.setLayout(layout)
+
+# ...existing code...
 
 class UnifiedPQTab(QWidget):
     def __init__(self):
@@ -23,61 +31,24 @@ class UnifiedPQTab(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout()
-        kem_row = QHBoxLayout()
-        self.kem_combo = QComboBox(); self.kem_combo.addItems(["kyber", "hqc"])
-        self.sig_combo = QComboBox(); self.sig_combo.addItems(["dilithium", "falcon"])
-        self.level_combo = QComboBox(); self.level_combo.addItems(["LEVEL1", "LEVEL3", "LEVEL5"])
-        kem_row.addWidget(QLabel("KEM")); kem_row.addWidget(self.kem_combo)
-        kem_row.addWidget(QLabel("Signature")); kem_row.addWidget(self.sig_combo)
-        kem_row.addWidget(QLabel("Level")); kem_row.addWidget(self.level_combo)
-        kem_row.addStretch(1)
-        layout.addLayout(kem_row)
-
-        # KEM Keypair
-        self.kem_pk = QLineEdit(); self.kem_sk = QLineEdit()
-        kem_btn = QPushButton("Generate KEM Keypair"); kem_btn.clicked.connect(self._on_kem_keygen)
-        layout.addWidget(QLabel("KEM Public Key")); layout.addWidget(self.kem_pk)
-        layout.addWidget(QLabel("KEM Private Key")); layout.addWidget(self.kem_sk)
-        layout.addWidget(kem_btn)
-
-        # Encaps/Decaps
-        self.kem_ct = QLineEdit(); self.kem_ss = QLineEdit(); self.kem_rec = QLineEdit()
-        kem_enc_btn = QPushButton("Encapsulate"); kem_enc_btn.clicked.connect(self._on_kem_encaps)
-        kem_dec_btn = QPushButton("Decapsulate"); kem_dec_btn.clicked.connect(self._on_kem_decaps)
-        layout.addWidget(QLabel("KEM Ciphertext")); layout.addWidget(self.kem_ct)
-        layout.addWidget(QLabel("KEM Shared Secret")); layout.addWidget(self.kem_ss)
-        layout.addWidget(QLabel("KEM Recovered Secret")); layout.addWidget(self.kem_rec)
-        layout.addWidget(kem_enc_btn); layout.addWidget(kem_dec_btn)
-
-        # Message Encryption (KEM)
-        self.kem_msg_in = QLineEdit(); self.kem_msg_in.setPlaceholderText("Message")
-        self.kem_msg_enc = QLineEdit(); self.kem_msg_enc.setPlaceholderText("Encrypted")
-        self.kem_msg_out = QLineEdit(); self.kem_msg_out.setPlaceholderText("Decrypted")
-        kem_msg_enc_btn = QPushButton("Encrypt Msg"); kem_msg_enc_btn.clicked.connect(self._on_kem_encrypt_msg)
-        kem_msg_dec_btn = QPushButton("Decrypt Msg"); kem_msg_dec_btn.clicked.connect(self._on_kem_decrypt_msg)
-        layout.addWidget(QLabel("Message Encryption (using Shared Secret)"))
-        layout.addWidget(self.kem_msg_in)
-        layout.addWidget(self.kem_msg_enc)
-        layout.addWidget(self.kem_msg_out)
-        hlayout = QHBoxLayout()
-        hlayout.addWidget(kem_msg_enc_btn); hlayout.addWidget(kem_msg_dec_btn)
-        layout.addLayout(hlayout)
-
-        # Signature Keypair
-        self.sig_pk = QLineEdit(); self.sig_sk = QLineEdit()
-        sig_btn = QPushButton("Generate Sig Keypair"); sig_btn.clicked.connect(self._on_sig_keygen)
-        layout.addWidget(QLabel("Signature Public Key")); layout.addWidget(self.sig_pk)
-        layout.addWidget(QLabel("Signature Secret Key")); layout.addWidget(self.sig_sk)
-        layout.addWidget(sig_btn)
-
-        # Sign/Verify
-        self.sig_msg = QLineEdit(); self.sig_sig = QLineEdit(); self.sig_result = QLineEdit(); self.sig_result.setReadOnly(True)
-        sign_btn = QPushButton("Sign"); sign_btn.clicked.connect(self._on_sign)
-        verify_btn = QPushButton("Verify"); verify_btn.clicked.connect(self._on_verify)
-        layout.addWidget(QLabel("Message to Sign")); layout.addWidget(self.sig_msg)
-        layout.addWidget(QLabel("Signature")); layout.addWidget(self.sig_sig)
-        layout.addWidget(sign_btn); layout.addWidget(verify_btn)
-        layout.addWidget(QLabel("Verify Result")); layout.addWidget(self.sig_result)
+        # ...existing GUI setup code...
+        # Add widgets for sign/verify
+        self.sig_msg = QLineEdit()
+        self.sig_sig = QLineEdit()
+        self.sig_result = QLineEdit()
+        self.sig_result.setReadOnly(True)
+        sign_btn = QPushButton("Sign")
+        sign_btn.clicked.connect(self._on_sign)
+        verify_btn = QPushButton("Verify")
+        verify_btn.clicked.connect(self._on_verify)
+        layout.addWidget(QLabel("Message to Sign"))
+        layout.addWidget(self.sig_msg)
+        layout.addWidget(QLabel("Signature"))
+        layout.addWidget(self.sig_sig)
+        layout.addWidget(sign_btn)
+        layout.addWidget(verify_btn)
+        layout.addWidget(QLabel("Verify Result"))
+        layout.addWidget(self.sig_result)
         self.setLayout(layout)
 
     def _suite(self):
@@ -145,38 +116,45 @@ class UnifiedPQTab(QWidget):
 
     def _on_sig_keygen(self):
         suite = self._suite()
-        pk, sk = suite.sig_keypair()
-        self.sig_pk.setText(str(pk)); self.sig_sk.setText(str(sk))
+        try:
+            pk, sk = suite.sig_keypair()
+            self.sig_pk.setText(str(pk))
+            self.sig_sk.setText(str(sk))
+        except NotImplementedError as exc:
+            self.sig_pk.setText("")
+            self.sig_sk.setText("")
+            self.sig_result.setText(f"Error: {exc}")
+        except Exception as exc:
+            self.sig_result.setText(f"Error: {exc}")
+
     def _on_sign(self):
         suite = self._suite()
-        sig = suite.sign(self.sig_sk.text(), self.sig_msg.text().encode("utf-8"))
-        self.sig_sig.setText(str(sig))
+        try:
+            sig = suite.sign(self.sig_sk.text(), self.sig_msg.text().encode("utf-8"))
+            self.sig_sig.setText(str(sig))
+            self.sig_result.setText("")
+        except NotImplementedError as exc:
+            self.sig_sig.setText("")
+            self.sig_result.setText(f"Error: {exc}")
+        except Exception as exc:
+            self.sig_result.setText(f"Error: {exc}")
+
     def _on_verify(self):
         suite = self._suite()
-        valid = suite.verify(self.sig_pk.text(), self.sig_msg.text().encode("utf-8"), self.sig_sig.text())
-        self.sig_result.setText("valid" if valid else "invalid")
+        try:
+            valid = suite.verify(self.sig_pk.text(), self.sig_msg.text().encode("utf-8"), self.sig_sig.text())
+            self.sig_result.setText("valid" if valid else "invalid")
+        except NotImplementedError as exc:
+            self.sig_result.setText(f"Error: {exc}")
+        except Exception as exc:
+            self.sig_result.setText(f"Error: {exc}")
 import base64
 import json
 import sys
 
 
 
-from PyQt6.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QPlainTextEdit,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QApplication, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox, QPushButton, QPlainTextEdit, QTabWidget, QVBoxLayout, QWidget
 
 from quantaweave import QuantaWeave, FalconSig
 
@@ -282,28 +260,53 @@ class LweTab(QWidget):
         except Exception as exc:
             _show_error(self, str(exc))
 
-    def _on_decrypt(self) -> None:
+    def _on_keygen(self) -> None:
         try:
-            ciphertext = json.loads(self.ciphertext_text.toPlainText())
-            private_key = json.loads(self.private_key_text.toPlainText())
-            plaintext = QuantaWeave.decrypt(ciphertext, private_key)
-            self.decrypted_text.setPlainText(plaintext.decode("utf-8", errors="replace"))
+            falcon = self._get_falcon()
+            public_key, secret_key = falcon.keygen()
+            encoding = self.encoding_combo.currentText()
+            self.public_key_text.setPlainText(_encode_bytes(public_key, encoding))
+            self.secret_key_text.setPlainText(_encode_bytes(secret_key, encoding))
+        except NotImplementedError as exc:
+            self.public_key_text.setPlainText("")
+            self.secret_key_text.setPlainText("")
+            self.verify_result.setText(f"Error: {exc}")
         except Exception as exc:
-            _show_error(self, str(exc))
+            self.verify_result.setText(f"Error: {exc}")
 
+    def _on_sign(self) -> None:
+        try:
+            falcon = self._get_falcon()
+            encoding = self.encoding_combo.currentText()
+            secret_key = _decode_bytes(self.secret_key_text.toPlainText(), encoding)
+            message = self.message_text.toPlainText().encode("utf-8")
+            signature = falcon.sign(secret_key, message)
+            self.signature_text.setPlainText(_encode_bytes(signature, encoding))
+            self.verify_result.setText("")
+        except NotImplementedError as exc:
+            self.signature_text.setPlainText("")
+            self.verify_result.setText(f"Error: {exc}")
+        except Exception as exc:
+            self.verify_result.setText(f"Error: {exc}")
 
-class HqcTab(QWidget):
-    def __init__(self) -> None:
-        super().__init__()
-        self._setup_ui()
-
-    def _setup_ui(self) -> None:
-        layout = QVBoxLayout()
-        controls = QHBoxLayout()
+    def _on_verify(self) -> None:
+        try:
+            falcon = self._get_falcon()
+            encoding = self.encoding_combo.currentText()
+            public_key = _decode_bytes(self.public_key_text.toPlainText(), encoding)
+            message = self.message_text.toPlainText().encode("utf-8")
+            signature = _decode_bytes(self.signature_text.toPlainText(), encoding)
+            valid = falcon.verify(public_key, message, signature)
+            self.verify_result.setText("valid" if valid else "invalid")
+        except NotImplementedError as exc:
+            self.verify_result.setText(f"Error: {exc}")
+        except Exception as exc:
+            self.verify_result.setText(f"Error: {exc}")
         self.level_combo = QComboBox()
         self.level_combo.addItems(["LEVEL1", "LEVEL3", "LEVEL5"])
         self.encoding_combo = QComboBox()
         self.encoding_combo.addItems(["hex", "base64"])
+        controls = QHBoxLayout()
         controls.addWidget(QLabel("Security level"))
         controls.addWidget(self.level_combo)
         controls.addWidget(QLabel("Encoding"))
@@ -340,7 +343,7 @@ class HqcTab(QWidget):
         btn_row.addWidget(self.encaps_btn)
         btn_row.addWidget(self.decaps_btn)
         kem_layout.addRow(btn_row)
-        
+
         # Message Encryption using Shared Secret
         self.kem_msg_in = QLineEdit()
         self.kem_msg_in.setPlaceholderText("Message to encrypt with shared secret")
@@ -348,7 +351,7 @@ class HqcTab(QWidget):
         self.kem_msg_enc.setReadOnly(True)
         self.kem_msg_out = QLineEdit()
         self.kem_msg_out.setReadOnly(True)
-        
+
         kem_msg_btn_row = QHBoxLayout()
         self.kem_encrypt_btn = QPushButton("Encrypt Message")
         self.kem_encrypt_btn.clicked.connect(self._on_kem_encrypt_msg)
@@ -356,19 +359,30 @@ class HqcTab(QWidget):
         self.kem_decrypt_btn.clicked.connect(self._on_kem_decrypt_msg)
         kem_msg_btn_row.addWidget(self.kem_encrypt_btn)
         kem_msg_btn_row.addWidget(self.kem_decrypt_btn)
-        
+
         kem_layout.addRow("Message", self.kem_msg_in)
         kem_layout.addRow("Encrypted Message", self.kem_msg_enc)
         kem_layout.addRow("Decrypted Message", self.kem_msg_out)
         kem_layout.addRow(kem_msg_btn_row)
-        
+
         kem_box.setLayout(kem_layout)
 
+        layout = QVBoxLayout()
         layout.addLayout(controls)
         layout.addWidget(key_box)
         layout.addWidget(kem_box)
         self.setLayout(layout)
 
+    def _on_decaps(self):
+        try:
+            pqc = PQCryptoSuite(kem="kyber", sig="dilithium", level=self.level_combo.currentText())
+            encoding = self.encoding_combo.currentText()
+            ciphertext = self.ciphertext_text.toPlainText()
+            private_key = self.private_key_text.toPlainText()
+            recovered_secret = pqc.kem_decapsulate(ciphertext, private_key)
+            self.recovered_secret_text.setText(str(recovered_secret))
+        except Exception as exc:
+            _show_error(self, str(exc))
     def _on_keygen(self) -> None:
         try:
             pqc = QuantaWeave(self.level_combo.currentText())
@@ -381,12 +395,58 @@ class HqcTab(QWidget):
 
     def _on_encaps(self) -> None:
         try:
+
             pqc = QuantaWeave(self.level_combo.currentText())
             encoding = self.encoding_combo.currentText()
             public_key = _decode_bytes(self.public_key_text.toPlainText(), encoding)
             ciphertext, shared_secret = pqc.hqc_encapsulate(public_key)
             self.ciphertext_text.setPlainText(_encode_bytes(ciphertext, encoding))
             self.shared_secret_text.setText(_encode_bytes(shared_secret, encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_kem_encrypt_msg(self) -> None:
+        try:
+            ss_hex = self.shared_secret_text.text()
+            if not ss_hex:
+                _show_error(self, "No shared secret available")
+                return
+            # Use simple XOR with repeated key for demonstration
+            # In production this should be AES-GCM or similar
+            encoding = self.encoding_combo.currentText()
+            ss_bytes = _decode_bytes(ss_hex, encoding)
+            msg_bytes = self.kem_msg_in.text().encode("utf-8")
+            
+            enc_bytes = bytearray()
+            for i, b in enumerate(msg_bytes):
+                enc_bytes.append(b ^ ss_bytes[i % len(ss_bytes)])
+            
+            self.kem_msg_enc.setText(_encode_bytes(bytes(enc_bytes), encoding))
+        except Exception as exc:
+            _show_error(self, str(exc))
+
+    def _on_kem_decrypt_msg(self) -> None:
+        try:
+            ss_hex = self.recovered_secret_text.text()
+            if not ss_hex:
+                # If recovered is empty, try shared secret (for testing)
+                ss_hex = self.shared_secret_text.text()
+                
+            if not ss_hex:
+                _show_error(self, "No shared/recovered secret available")
+                return
+
+            encoding = self.encoding_combo.currentText()
+            ciphertext = _decode_bytes(self.ciphertext_text.toPlainText(), encoding)
+            private_key = _decode_bytes(self.private_key_text.toPlainText(), encoding)
+            # If pqc is not defined, fallback to error
+            shared_secret = None
+            try:
+                pqc = PQCryptoSuite(kem="kyber", sig="dilithium", level=self.level_combo.currentText())
+                shared_secret = pqc.hqc_decapsulate(ciphertext, private_key)
+            except Exception as exc2:
+                _show_error(self, f"Error: {exc2}")
+            self.recovered_secret_text.setText(_encode_bytes(shared_secret, encoding))
         except Exception as exc:
             _show_error(self, str(exc))
 
