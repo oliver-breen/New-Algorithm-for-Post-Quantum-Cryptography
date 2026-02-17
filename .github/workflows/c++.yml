@@ -1,0 +1,29 @@
+name: C Lint and Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint_and_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cppcheck build-essential
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --inconclusive --std=c99 --language=c --error-exitcode=1 .
+      
+      - name: Build (example with make)
+        run: |
+          if [ -f Makefile ]; then
+            make
+          else
+            echo "No Makefile found, skip build step"
+          fi
