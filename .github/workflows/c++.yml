@@ -33,13 +33,13 @@ jobs:
 
       - name: Build (Makefile, CMake, or fallback compilation)
         run: |
-          BUILD_DIR=build/github-testing
+          sudo BUILD_DIR=build/github-testing
           if [ -f Makefile ]; then
             echo "Running make..."
-            make -j$(nproc) BUILD_DIR=$BUILD_DIR
+            sudo make -j$(nproc) BUILD_DIR=$BUILD_DIR
           elif [ -f CMakeLists.txt ]; then
             echo "Running cmake..."
-            cd $BUILD_DIR
+            sudo cd $BUILD_DIR
             cmake ../..
             make -j$(nproc)
             cd ../..
