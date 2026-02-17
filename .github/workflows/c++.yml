@@ -1,4 +1,4 @@
-name: C Lint and Build
+name: C Lint, Build, and Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  lint_and_build:
+  lint_build_test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -18,12 +18,30 @@ jobs:
 
       - name: Run cppcheck
         run: |
-          cppcheck --enable=all --inconclusive --std=c99 --language=c --error-exitcode=1 .
+          cppcheck --enable=all --inconclusive --std=c99 --language=c --error-exitcode=1 \
+            --include="Necessary Files/PQClean/kem/hqc-128/clean" \
+            --include="Necessary Files/PQClean/kem/hqc-256/clean" \
+            --include="Necessary Files/PQClean/signed/falcon-1024/aarch64"
       
-      - name: Build (example with make)
+      - name: Build with custom include directories and flags
         run: |
           if [ -f Makefile ]; then
-            make
+            make CFLAGS="-I'Necessary Files/PQClean/kem/hqc-128/clean' -I'Necessary Files/PQClean/kem/hqc-256/clean' -Wall -Wextra -std=c99"
           else
             echo "No Makefile found, skip build step"
+          fi
+
+      - name: Extra build (example)
+        run: |
+          gcc -I"Necessary Files/PQClean/kem/hqc-128/clean" \
+              -I"Necessary Files/PQClean/kem/hqc-256/clean" \
+              -Wall -Wextra -std=c99 \
+              -o my_binary vendor/hqc/packaging/utils/helpers/main_kat.c
+
+      - name: Run tests
+        run: |
+          if [ -f my_binary ]; then
+            ./my_binary
+          else
+            echo "Test binary not found, skip test step"
           fi
